@@ -1,0 +1,17 @@
+[[source]]
+url = "https://pypi.org/simple"
+verify_ssl = true
+name = "pypi"
+
+[packages]
+twitchio = "*"
+
+[dev-packages]
+flake8 = "*"
+mypy = "*"
+pytest = "*"
+tox = "*"
+tox-pipenv = "*"
+
+[requires]
+python_version = "3.10"
