@@ -1,0 +1,17 @@
+# Flake8 configuration file
+# For simplicity, Flake8 is being configured in a stand-alone file
+# all users of this repo are expected to use THIS file to check against
+# Flake8 warnings when developing. This file is the single point of truth for
+# GuessingGame_TTV's linting, and all pull-requests will be validated against
+# this configuration.
+
+[flake8]
+exclude = 
+    .git
+    __pycache__
+
+max-line-length = 80
+# Matching the general line length for consistency
+max-doc-length = 80
+indent-size = 2
+disable-noqa = True
