@@ -10,7 +10,8 @@ from guessinggame_ttv.database import (DatabaseManager, RedeemExistsException,
 
 def test_init_users(dbmanager: DatabaseManager) -> None:
     cur = dbmanager._connection.cursor()
-    schema = cur.execute('SELECT sql FROM sqlite_master WHERE type = "table" and name = "users";').fetchone()
+    schema = cur.execute('SELECT sql FROM sqlite_master WHERE type = "table" '
+                         'and name = "users";').fetchone()
 
     expected = '''CREATE TABLE users (
     id INTEGER PRIMARY KEY NOT NULL UNIQUE,
@@ -24,7 +25,8 @@ def test_init_users(dbmanager: DatabaseManager) -> None:
 
 def test_init_redeems(dbmanager: DatabaseManager) -> None:
     cur = dbmanager._connection.cursor()
-    schema = cur.execute('SELECT sql FROM sqlite_master WHERE type = "table" and name = "redeems";').fetchone()
+    schema = cur.execute('SELECT sql FROM sqlite_master WHERE type = "table" '
+                         'and name = "redeems";').fetchone()
 
     expected = '''CREATE TABLE redeems(
     name TEXT PRIMARY KEY NOT NULL UNIQUE,
@@ -36,7 +38,8 @@ def test_init_redeems(dbmanager: DatabaseManager) -> None:
 
 def test_init_categories(dbmanager: DatabaseManager) -> None:
     cur = dbmanager._connection.cursor()
-    schema = cur.execute('SELECT sql FROM sqlite_master WHERE type = "table" and name = "categories";').fetchone()
+    schema = cur.execute('SELECT sql FROM sqlite_master WHERE type = "table" '
+                         'and name = "categories";').fetchone()
 
     expected = '''CREATE TABLE categories(
     id INTEGER PRIMARY KEY NOT NULL UNIQUE,
@@ -48,7 +51,8 @@ def test_init_categories(dbmanager: DatabaseManager) -> None:
 
 def test_init_wordlist(dbmanager: DatabaseManager) -> None:
     cur = dbmanager._connection.cursor()
-    schema = cur.execute('SELECT sql FROM sqlite_master WHERE type = "table" and name = "wordlist";').fetchone()
+    schema = cur.execute('SELECT sql FROM sqlite_master WHERE type = "table" '
+                         'and name = "wordlist";').fetchone()
 
     expected = '''CREATE TABLE wordlist(
     id INTEGER PRIMARY KEY NOT NULL UNIQUE,
@@ -61,7 +65,8 @@ def test_init_wordlist(dbmanager: DatabaseManager) -> None:
 
 def test_init_meta(dbmanager: DatabaseManager) -> None:
     cur = dbmanager._connection.cursor()
-    schema = cur.execute('SELECT sql FROM sqlite_master WHERE type = "table" and name = "meta";').fetchone()
+    schema = cur.execute('SELECT sql FROM sqlite_master WHERE type = "table" '
+                         'and name = "meta";').fetchone()
 
     expected = '''CREATE TABLE meta(
     id INTEGER PRIMARY KEY NOT NULL UNIQUE,
@@ -131,7 +136,7 @@ def test_get_highscores_tied(dbmanagerfilled: DatabaseManager,
 
     assert len(scores) == 6
     comparison = [('dummyuser2', 50), ('dummyuser3', 50), ('dummyuser4', 50),
-                 ('dummyuser5', 50), ('dummyuser6', 50), ('dummyuser7', 50)]
+                  ('dummyuser5', 50), ('dummyuser6', 50), ('dummyuser7', 50)]
 
     for score in scores:
         assert score in comparison
@@ -178,7 +183,8 @@ def test_set_tokens_invalid(dbmanagerfilled: DatabaseManager,
         dbmanagerfilled.set_tokens('invalid_user', 100)
 
     dbmanagerfilled.set_tokens('MultiDarkSamuses', -1)
-    tokens = dbconn.execute('SELECT tokens FROM user WHERE username = "MultiDarkSamuses"').fetchone()
+    tokens = dbconn.execute('SELECT tokens FROM user WHERE username = '
+                            '"MultiDarkSamuses"').fetchone()
 
     assert tokens == 0
 
@@ -186,7 +192,8 @@ def test_set_tokens_invalid(dbmanagerfilled: DatabaseManager,
 def test_add_tokens(dbmanagerfilled: DatabaseManager,
                     dbconn: sqlite3.Connection) -> None:
     dbmanagerfilled.add_tokens('MultiDarkSamuses', 4)
-    tokens = dbconn.execute('SELECT tokens FROM users WHERE username = "MultiDarkSamuses').fetchone()
+    tokens = dbconn.execute('SELECT tokens FROM users WHERE username = '
+                            '"MultiDarkSamuses').fetchone()
 
     assert tokens == 9
 
@@ -233,7 +240,8 @@ def test_add_redeem_duplicate(dbmanagerfilled: DatabaseManager) -> None:
 def test_remove_redeem(dbmanagerfilled: DatabaseManager,
                        dbconn: sqlite3.Connection) -> None:
     dbmanagerfilled.remove_redeem('dummyredeem2')
-    res = dbconn.execute('SELECT * FROM redeems WHERE name = ?', ['dummyredeem2']).fetchone()
+    res = dbconn.execute('SELECT * FROM redeems WHERE name = ?',
+                         ['dummyredeem2']).fetchone()
 
     assert len(res) == 0
 
@@ -248,7 +256,8 @@ def test_modify_redeem(dbmanagerfilled: DatabaseManager,
     dbmanagerfilled.modify_redeem('dummyredeem1', 'renamedredeem', 40)
     res1 = dbconn.execute('SELECT name, cost FROM redeems WHERE name = ?',
                           ['renamedredeem']).fetchone()
-    res2 = dbconn.execute('SELECT * FROM redeems WHERE name = "dummyredeem1"').fetchone()
+    res2 = (dbconn.execute('SELECT * FROM redeems WHERE name = "dummyredeem1"')
+            .fetchone())
 
     assert res1 == ('renamedredeem', 40)
     assert len(res2) == 0
@@ -262,8 +271,10 @@ def test_modify_redeem_invalid(dbmanagerfilled: DatabaseManager) -> None:
 def test_migrate_user(dbmanagerfilled: DatabaseManager,
                       dbconn: sqlite3.Connection) -> None:
     dbmanagerfilled.migrate_user('DummyUser', 'MultiDarkSamuses')
-    res1 = dbconn.execute('SELECT name, score, tokens FROM users WHERE username = "MultiDarkSamuses"').fetchone()
-    res2 = dbconn.execute('SELECT * FROM users WHERE username = "DummyUser"').fetchone()
+    res1 = dbconn.execute('SELECT name, score, tokens FROM users WHERE '
+                          'username = "MultiDarkSamuses"').fetchone()
+    res2 = (dbconn.execute('SELECT * FROM users WHERE username = "DummyUser"')
+            .fetchone())
 
     assert res1 == ('MultiDarkSamuses', 7, 6)
     assert len(res2) == 0
@@ -314,7 +325,8 @@ def test_get_words(dbmanagerfilled: DatabaseManager) -> None:
 def test_add_word(dbmanagerfilled: DatabaseManager,
                   dbconn: sqlite3.Connection) -> None:
     dbmanagerfilled.add_word('NewWord', 'dummy2')
-    res = dbconn.execute('SELECT * FROM wordlist WHERE word = "NewWord"').fetchone()
+    res = (dbconn.execute('SELECT * FROM wordlist WHERE word = "NewWord"')
+           .fetchone())
 
     assert res is not None
 
@@ -327,7 +339,8 @@ def test_add_word_duplicate(dbmanagerfilled: DatabaseManager) -> None:
 def test_add_words_old_category(dbmanagerfilled: DatabaseManager,
                                 dbconn: sqlite3.Connection) -> None:
     dbmanagerfilled.add_words(['NewWord1', 'NewWord2'], 'dummy1')
-    res = dbconn.execute('SELECT word FROM wordlist WHERE category = "dummy1"').fetchall()
+    res = (dbconn.execute('SELECT word FROM wordlist WHERE category = "dummy1"')
+           .fetchall())
 
     assert {'NewWord1', 'NewWord2'}.issubset(res)
 
@@ -335,7 +348,8 @@ def test_add_words_old_category(dbmanagerfilled: DatabaseManager,
 def test_add_words_new_category(dbmanagerfilled: DatabaseManager,
                                 dbconn: sqlite3.Connection) -> None:
     dbmanagerfilled.add_words(['Samus', 'Sbug'], 'Metroid')
-    res = dbconn.execute('SELECT word FROM wordlist WHERE category = "Metroid"').fetchall()
+    res = dbconn.execute('SELECT word FROM wordlist WHERE category = '
+                         '"Metroid"').fetchall()
 
     assert {'Samus', 'Sbug'}.issubset(res)
 
@@ -360,7 +374,8 @@ def test_set_wordlist(dbmanagerfilled: DatabaseManager) -> None:
 def test_set_meta(dbmanager: DatabaseManager,
                   dbconn: sqlite3.Connection) -> None:
     dbmanager.set_meta('testmeta', '10')
-    res = dbconn.execute('SELECT value FROM meta WHERE name = "testmeta"').fetchone()
+    res = (dbconn.execute('SELECT value FROM meta WHERE name = "testmeta"')
+           .fetchone())
 
     assert res == '10'
     assert int(res) == 10
@@ -368,7 +383,8 @@ def test_set_meta(dbmanager: DatabaseManager,
     # Test overriding meta
 
     dbmanager.set_meta('testmeta', 'new data')
-    res = dbconn.execute('SELECT value FROM meta WHERE name = "testmeta"').fetchone()
+    res = (dbconn.execute('SELECT value FROM meta WHERE name = "testmeta"')
+           .fetchone())
 
     assert res == 'new data'
 

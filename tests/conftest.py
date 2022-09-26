@@ -35,7 +35,8 @@ def dbmanagerfilled(dbmanager: DatabaseManager) -> DatabaseManager:
 
     # Add some dummy users
     values = [('MultiDarkSamuses', 3, 5), ('DummyUser', 4, 1)]
-    conn.executemany('INSERT INTO users (username, score, tokens) VALUES (?, ?, ?)',
+    conn.executemany('INSERT INTO users (username, score, tokens)'
+                     'VALUES (?, ?, ?)',
                      values)
 
     # Add some dummy redeems
