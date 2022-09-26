@@ -3,7 +3,7 @@ from guessinggame_ttv.database import DatabaseManager
 import logging
 import pytest
 import sqlite3
-from Typing import Union, Tuple
+from typing import Union, Tuple
 
 logging.disable()
 
