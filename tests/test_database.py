@@ -77,7 +77,7 @@ def test_reset_scores(dbmanagerfilled: DatabaseManager,
                       dbconn: sqlite3.Connection) -> None:
     dbmanagerfilled.reset_scores()
     # dbmanagerfilled.teardown()
-    results = dbconn.execute('SELECT score FROM users').fetchall()
+    results = dbconn.execute('SELECT username, score FROM users').fetchall()
 
     assert results == [('MultiDarkSamuses', 0), ('DummyUser', 0)]
 
