@@ -89,7 +89,7 @@ def test_add_score(dbmanagerfilled: DatabaseManager, dbconn: sqlite3.Connection,
                    username: str, add_score: int, expected: int) -> None:
     dbmanagerfilled.add_score(username, add_score)
     res = dbconn.execute('SELECT score FROM users WHERE username = ?',
-                         [username]).fetchone()
+                         [username]).fetchone()[0]
 
     assert res == expected
 
@@ -116,10 +116,10 @@ def test_get_highscores(dbmanagerfilled: DatabaseManager) -> None:
 
 def test_get_highscores_tied(dbmanagerfilled: DatabaseManager,
                              dbconn: sqlite3.Connection) -> None:
-    dbconn.executemany('INSERT INTO users (name, score) VALUES (?,50)',
-                       [('dummyuser2'), ('dummyuser3'), ('dummyuser4'),
-                        ('dummyuser5'), ('dummyuser6'), ('dummyuser7'),
-                        ('dummyuser8')])
+    dbconn.executemany('INSERT INTO users (username, score) VALUES (?,50)',
+                       [('dummyuser2',), ('dummyuser3',), ('dummyuser4',),
+                        ('dummyuser5',), ('dummyuser6',), ('dummyuser7',),
+                        ('dummyuser8',)])
     scores = dbmanagerfilled.get_highscores()
 
     assert len(scores) == 6
@@ -159,7 +159,7 @@ def test_set_tokens(dbmanagerfilled: DatabaseManager,
                     dbconn: sqlite3.Connection, username: str,
                     amount: int) -> None:
     dbmanagerfilled.set_tokens(username, amount)
-    tokens = dbconn.execute('SELECT tokens FROM user WHERE username = ?',
+    tokens = dbconn.execute('SELECT tokens FROM users WHERE username = ?',
                             [username]).fetchone()
 
     assert tokens == amount
@@ -181,7 +181,7 @@ def test_add_tokens(dbmanagerfilled: DatabaseManager,
                     dbconn: sqlite3.Connection) -> None:
     dbmanagerfilled.add_tokens('MultiDarkSamuses', 4)
     tokens = dbconn.execute('SELECT tokens FROM users WHERE username = '
-                            '"MultiDarkSamuses').fetchone()
+                            '"MultiDarkSamuses"').fetchone()
 
     assert tokens == 9
 
@@ -259,7 +259,7 @@ def test_modify_redeem_invalid(dbmanagerfilled: DatabaseManager) -> None:
 def test_migrate_user(dbmanagerfilled: DatabaseManager,
                       dbconn: sqlite3.Connection) -> None:
     dbmanagerfilled.migrate_user('DummyUser', 'MultiDarkSamuses')
-    res1 = dbconn.execute('SELECT name, score, tokens FROM users WHERE '
+    res1 = dbconn.execute('SELECT username, score, tokens FROM users WHERE '
                           'username = "MultiDarkSamuses"').fetchone()
     res2 = (dbconn.execute('SELECT * FROM users WHERE username = "DummyUser"')
             .fetchone())
@@ -327,7 +327,9 @@ def test_add_word_duplicate(dbmanagerfilled: DatabaseManager) -> None:
 def test_add_words_old_category(dbmanagerfilled: DatabaseManager,
                                 dbconn: sqlite3.Connection) -> None:
     dbmanagerfilled.add_words(['NewWord1', 'NewWord2'], 'dummy1')
-    res = (dbconn.execute('SELECT word FROM wordlist WHERE category = "dummy1"')
+    res = (dbconn.execute('SELECT word FROM wordlist LEFT JOIN categories ON '
+                          'category_id = categories.id WHERE categories.name = '
+                          '"dummy1"')
            .fetchall())
 
     assert {'NewWord1', 'NewWord2'}.issubset(res)
@@ -336,7 +338,8 @@ def test_add_words_old_category(dbmanagerfilled: DatabaseManager,
 def test_add_words_new_category(dbmanagerfilled: DatabaseManager,
                                 dbconn: sqlite3.Connection) -> None:
     dbmanagerfilled.add_words(['Samus', 'Sbug'], 'Metroid')
-    res = dbconn.execute('SELECT word FROM wordlist WHERE category = '
+    res = dbconn.execute('SELECT word FROM wordlist LEFT JOIN categories ON '
+                         'category_id = categories.id WHERE categories.name = '
                          '"Metroid"').fetchall()
 
     assert {'Samus', 'Sbug'}.issubset(res)
@@ -362,7 +365,7 @@ def test_set_wordlist(dbmanagerfilled: DatabaseManager) -> None:
 def test_set_meta(dbmanager: DatabaseManager,
                   dbconn: sqlite3.Connection) -> None:
     dbmanager.set_meta('testmeta', '10')
-    res = (dbconn.execute('SELECT value FROM meta WHERE name = "testmeta"')
+    res = (dbconn.execute('SELECT data FROM meta WHERE name = "testmeta"')
            .fetchone())
 
     assert res == '10'
