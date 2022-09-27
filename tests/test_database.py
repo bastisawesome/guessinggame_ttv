@@ -12,31 +12,32 @@ from guessinggame_ttv.database import (DatabaseManager, RedeemExistsException,
                          [['users', [
                             'CREATE TABLE users',
                             'id INTEGER PRIMARY KEY NOT NULL UNIQUE',
-                            'username TEXT NOT NULL UNIQUE',
+                            'username TEXT NOT NULL UNIQUE COLLATE NOCASE',
                             'score INTEGER NOT NULL DEFAULT 0',
                             'tokens INTEGER NOT NULL DEFAULT 0'
                           ]],
                           ['redeems', [
                             'CREATE TABLE redeems',
-                            'name TEXT PRIMARY KEY NOT NULL UNIQUE',
+                            'name TEXT PRIMARY KEY NOT NULL UNIQUE COLLATE '
+                            'NOCASE',
                             'cost INTEGER NOT NULL'
                           ]],
                           ['categories', [
                             'CREATE TABLE categories',
                             'id INTEGER PRIMARY KEY NOT NULL UNIQUE',
-                            'name TEXT NOT NULL UNIQUE'
+                            'name TEXT NOT NULL UNIQUE COLLATE NOCASE'
                           ]],
                           ['wordlist', [
                             'CREATE TABLE wordlist',
                             'id INTEGER PRIMARY KEY NOT NULL UNIQUE',
-                            'word TEXT NOT NULL UNIQUE',
+                            'word TEXT NOT NULL UNIQUE COLLATE NOCASE',
                             'category_id INTEGER NOT NULL REFERENCES '
                             'categoriesid ON DELETE RESTRICT'
                           ]],
                           ['meta', [
                             'CREATE TABLE meta',
                             'id INTEGER PRIMARY KEY NOT NULL UNIQUE',
-                            'name TEXT NOT NULL UNIQUE',
+                            'name TEXT NOT NULL UNIQUE COLLATE NOCASE',
                             'data BLOB'
                           ]]])
 def test_db_initialisation(dbmanager: DatabaseManager,
