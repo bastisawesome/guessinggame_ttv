@@ -7,23 +7,29 @@ import sqlite3
 logging.disable()
 
 
-@pytest.fixture
+@pytest.fixture(scope='function')
 def dbmanager() -> DatabaseManager:
-    return DatabaseManager(_in_memory=True)
+    dm = DatabaseManager(_in_memory=True)
+    yield dm
+    dm.teardown()
+    # del dm
 
 
-@pytest.fixture
-def dbconn() -> sqlite3.Connection:
-    return sqlite3.connect('file:testdb?mode=memory&cache=shared', uri=True)
+@pytest.fixture(scope='function')
+def dbconn(dbmanager: DatabaseManager) -> sqlite3.Connection:
+    # Hopefully the only statement in the entire program to need to actually
+    # ignore. MyPy can't handle the type of DatabaseManager._connection from
+    # this particular function.
+    return dbmanager._connection  # type: ignore
 
 
-@pytest.fixture
+@pytest.fixture(scope='function')
 def dbmanagerfilled(dbmanager: DatabaseManager) -> DatabaseManager:
     # Fill database with dummy values
     conn = dbmanager._connection
 
     # Add two dummy categories
-    cats = ['dummy1', 'dummy2']
+    cats = [('dummy1',), ('dummy2',)]
     conn.executemany('INSERT INTO categories (name) VALUES  (?)',
                      cats)
 
@@ -49,4 +55,5 @@ def dbmanagerfilled(dbmanager: DatabaseManager) -> DatabaseManager:
     conn.executemany('INSERT INTO meta (name, data) VALUES (?,?)',
                      metadata)
 
-    return dbmanager
+    yield dbmanager
+    # dbmanager.teardown()
