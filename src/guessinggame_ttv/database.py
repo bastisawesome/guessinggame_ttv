@@ -179,7 +179,7 @@ class DatabaseManager:
 
         schema = '''CREATE TABLE users (
     id INTEGER PRIMARY KEY NOT NULL UNIQUE,
-    username TEXT NOT NULL UNIQUE,
+    username TEXT NOT NULL UNIQUE COLLATE NOCASE,
     score INTEGER NOT NULL DEFAULT 0,
     tokens INTEGER NOT NULL DEFAULT 0
 )'''
@@ -216,7 +216,7 @@ class DatabaseManager:
         self.logger.info('Creating `redeems` table')
 
         schema = '''CREATE TABLE redeems (
-    name TEXT PRIMARY KEY NOT NULL UNIQUE,
+    name TEXT PRIMARY KEY NOT NULL UNIQUE COLLATE NOCASE,
     cost INTEGER NOT NULL
 )'''
         self._connection.execute(schema)
@@ -252,7 +252,7 @@ class DatabaseManager:
 
         schema = '''CREATE TABLE categories (
     id INTEGER PRIMARY KEY NOT NULL UNIQUE,
-    name TEXT NOT NULL UNIQUE
+    name TEXT NOT NULL UNIQUE COLLATE NOCASE
 )'''
         self._connection.execute(schema)
 
@@ -287,7 +287,7 @@ class DatabaseManager:
 
         schema = '''CREATE TABLE wordlist(
     id INTEGER PRIMARY KEY NOT NULL UNIQUE,
-    word TEXT NOT NULL UNIQUE,
+    word TEXT NOT NULL UNIQUE COLLATE NOCASE,
     category_id INTEGER NOT NULL REFERENCES categories(id) ON DELETE RESTRICT
 )'''
         self._connection.execute(schema)
@@ -324,7 +324,7 @@ class DatabaseManager:
 
         schema = '''CREATE TABLE meta (
     id INTEGER PRIMARY KEY NOT NULL UNIQUE,
-    name TEXT NOT NULL UNIQUE,
+    name TEXT NOT NULL UNIQUE COLLATE NOCASE,
     data BLOB
 )'''
         self._connection.execute(schema)
@@ -355,7 +355,11 @@ class DatabaseManager:
         self._connection.close()
 
     def get_score(self, username: str) -> int:
-        pass
+        query = 'SELECT score FROM users WHERE username = ?'
+        res: list[int] = (self._connection.execute(query, (username.lower(),))
+                          .fetchone())
+        print(res)
+        return res[0] if res else 0
 
     def reset_scores(self) -> None:
         pass
