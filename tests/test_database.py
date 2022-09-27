@@ -8,73 +8,59 @@ from guessinggame_ttv.database import (DatabaseManager, RedeemExistsException,
                                        WordNotFoundException)
 
 
-def test_init_users(dbmanager: DatabaseManager) -> None:
+@pytest.mark.parametrize('tablename,expschema',
+                         [['users', [
+                            'CREATE TABLE users',
+                            'id INTEGER PRIMARY KEY NOT NULL UNIQUE',
+                            'username TEXT NOT NULL UNIQUE',
+                            'score INTEGER NOT NULL DEFAULT 0',
+                            'tokens INTEGER NOT NULL DEFAULT 0'
+                          ]],
+                          ['redeems', [
+                            'CREATE TABLE redeems',
+                            'name TEXT PRIMARY KEY NOT NULL UNIQUE',
+                            'cost INTEGER NOT NULL'
+                          ]],
+                          ['categories', [
+                            'CREATE TABLE categories',
+                            'id INTEGER PRIMARY KEY NOT NULL UNIQUE',
+                            'name TEXT NOT NULL UNIQUE'
+                          ]],
+                          ['wordlist', [
+                            'CREATE TABLE wordlist',
+                            'id INTEGER PRIMARY KEY NOT NULL UNIQUE',
+                            'word TEXT NOT NULL UNIQUE',
+                            'category_id INTEGER NOT NULL REFERENCES '
+                            'categoriesid ON DELETE RESTRICT'
+                          ]],
+                          ['meta', [
+                            'CREATE TABLE meta',
+                            'id INTEGER PRIMARY KEY NOT NULL UNIQUE',
+                            'name TEXT NOT NULL UNIQUE',
+                            'data BLOB'
+                          ]]])
+def test_db_initialisation(dbmanager: DatabaseManager,
+                           tablename: str,
+                           expschema: list[str]) -> None:
     cur = dbmanager._connection.cursor()
-    schema = cur.execute('SELECT sql FROM sqlite_master WHERE type = "table" '
-                         'and name = "users";').fetchone()
+    schema: str = (cur.execute('SELECT sql FROM sqlite_master WHERE type = '
+                               '"table" and name = ?', [tablename])
+                   .fetchone()[0].lower())
 
-    expected = '''CREATE TABLE users (
-    id INTEGER PRIMARY KEY NOT NULL UNIQUE,
-    username TEXT NOT NULL UNIQUE,
-    score INTEGER NOT NULL DEFAULT 0,
-    tokens INTEGER NOT NULL DEFAULT 0
-);'''
+    # Remove unnecessary symbols from the schema
+    schema = schema.replace('(', '')
+    schema = schema.replace(')', '')
+    schema = schema.replace(';', '')
+    schema = schema.replace(',', '')
 
-    assert schema == expected
+    for line in expschema:
+        assert line.lower() in schema
+        schema = schema.replace(line.lower(), '')
 
+    # Check that the schema exactly matches the expected schema
+    schema = schema.strip()
 
-def test_init_redeems(dbmanager: DatabaseManager) -> None:
-    cur = dbmanager._connection.cursor()
-    schema = cur.execute('SELECT sql FROM sqlite_master WHERE type = "table" '
-                         'and name = "redeems";').fetchone()
-
-    expected = '''CREATE TABLE redeems(
-    name TEXT PRIMARY KEY NOT NULL UNIQUE,
-    cost INTEGER NOT NULL
-);'''
-
-    assert schema == expected
-
-
-def test_init_categories(dbmanager: DatabaseManager) -> None:
-    cur = dbmanager._connection.cursor()
-    schema = cur.execute('SELECT sql FROM sqlite_master WHERE type = "table" '
-                         'and name = "categories";').fetchone()
-
-    expected = '''CREATE TABLE categories(
-    id INTEGER PRIMARY KEY NOT NULL UNIQUE,
-    name TEXT NOT NULL UNIQUE
-);'''
-
-    assert schema == expected
-
-
-def test_init_wordlist(dbmanager: DatabaseManager) -> None:
-    cur = dbmanager._connection.cursor()
-    schema = cur.execute('SELECT sql FROM sqlite_master WHERE type = "table" '
-                         'and name = "wordlist";').fetchone()
-
-    expected = '''CREATE TABLE wordlist(
-    id INTEGER PRIMARY KEY NOT NULL UNIQUE,
-    word TEXT NOT NULL UNIQUE,
-    category_id INTEGER NOT NULL REFERENCES categories(id) ON DELETE RESTRICT
-);'''
-
-    assert schema == expected
-
-
-def test_init_meta(dbmanager: DatabaseManager) -> None:
-    cur = dbmanager._connection.cursor()
-    schema = cur.execute('SELECT sql FROM sqlite_master WHERE type = "table" '
-                         'and name = "meta";').fetchone()
-
-    expected = '''CREATE TABLE meta(
-    id INTEGER PRIMARY KEY NOT NULL UNIQUE,
-    name TEXT NOT NULL UNIQUE,
-    data BLOB
-);'''
-
-    assert schema == expected
+    assert schema == ''
 
 
 @pytest.mark.parametrize('username,expected',
@@ -89,6 +75,7 @@ def test_get_scores(dbmanagerfilled: DatabaseManager, username: str,
 def test_reset_scores(dbmanagerfilled: DatabaseManager,
                       dbconn: sqlite3.Connection) -> None:
     dbmanagerfilled.reset_scores()
+    # dbmanagerfilled.teardown()
     results = dbconn.execute('SELECT score FROM users').fetchall()
 
     assert results == [('MultiDarkSamuses', 0), ('DummyUser', 0)]
