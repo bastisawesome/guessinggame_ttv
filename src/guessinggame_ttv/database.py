@@ -362,7 +362,8 @@ class DatabaseManager:
         return res[0] if res else 0
 
     def reset_scores(self) -> None:
-        pass
+        query = 'UPDATE users SET score = 0'
+        self._connection.execute(query)
 
     def add_score(self, username: str, amount: int) -> None:
         pass
