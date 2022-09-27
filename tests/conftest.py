@@ -7,14 +7,14 @@ import sqlite3
 logging.disable()
 
 
-@pytest.fixture()
+@pytest.fixture
 def dbmanager() -> DatabaseManager:
     return DatabaseManager(_in_memory=True)
 
 
 @pytest.fixture
 def dbconn() -> sqlite3.Connection:
-    pass
+    return sqlite3.connect('file:testdb?mode=memory&cache=shared', uri=True)
 
 
 @pytest.fixture
