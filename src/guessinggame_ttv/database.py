@@ -37,7 +37,11 @@ class CategoryNotFoundException(DatabaseException):
     pass
 
 
-class MetaRowNotFound(DatabaseException):
+class CategoryExistsException(DatabaseException):
+    pass
+
+
+class MetaNotFoundException(DatabaseException):
     pass
 
 
@@ -48,7 +52,7 @@ class DatabaseManager:
         '''Database Management object used to control the Sqlite3 database.
 
         :param _in_memory: Tells the manager to use an in-memory database,
-        *only use for testing*.
+        **only use for testing**.
         '''
         self.logger = logging.getLogger('guessinggame_ttv')
         self.logger.info('Initialising DatabaseManager')
@@ -65,7 +69,8 @@ class DatabaseManager:
                              'testing')
 
             conn = sqlite3.connect('file:testdb?mode=memory&cache=shared',
-                                   uri=True)
+                                   uri=True,
+                                   detect_types=sqlite3.PARSE_DECLTYPES)
 
             self.logger.info('Connected to in-memory database')
         else:
@@ -82,7 +87,8 @@ class DatabaseManager:
                 # initialised
                 create_database = False
 
-            conn = sqlite3.connect(db_path)
+            conn = sqlite3.connect(db_path,
+                                   detect_types=sqlite3.PARSE_DECLTYPES)
 
             self.logger.info('Created connection to database on disk')
 
@@ -113,7 +119,7 @@ class DatabaseManager:
 
         self.logger.info('Enabling Sqlite3 to validate foreign keys')
 
-        self._connection = conn
+        self._connection: sqlite3.Connection = conn
 
         if create_database:
             self.logger.info('Initialising database')
@@ -173,7 +179,7 @@ class DatabaseManager:
 
             self.logger.info('Deleting the old `users` table')
 
-            self._connection.execute('DRP TABLE users')
+            self._connection.execute('DROP TABLE users')
 
         self.logger.info('Creating the `users` table')
 
@@ -342,6 +348,12 @@ class DatabaseManager:
         self.logger.info('Finished creating `meta` table')
 
     def teardown(self) -> None:
+        """Closes the database connection
+
+        Writes the current database schema version to the meta table in the
+        database, then closes the connection to the database.
+        """
+
         self.logger.info('Tearing down database connection')
         self.logger.info('Writing schema version to database')
 
@@ -355,75 +367,597 @@ class DatabaseManager:
         self._connection.close()
 
     def get_score(self, username: str) -> int:
+        """Gets the score of the user by username.
+
+        Returns the score of the user by their username. If the user is not in
+        the database the function returns 0.
+
+        Args:
+            username (str): Username of the user to get the score of, either in
+                        Twitch format, or custom-format for YouTube usernames
+                        (replace spaces with underscores). Case insensitive.
+
+        Returns:
+            int: The user's score, or 0 if the user is not in the database.
+        """
+
+        self.logger.info(f'Getting score for player {username}')
+
         query = 'SELECT score FROM users WHERE username = ?'
         res: list[int] = (self._connection.execute(query, (username.lower(),))
                           .fetchone())
-        print(res)
-        return res[0] if res else 0
+        if res:
+            self.logger.info('User found, returning score')
+
+            return res[0]
+        else:
+            self.logger.info('User not found, returning default 0')
+
+            return 0
 
     def reset_scores(self) -> None:
+        """Sets all scores in the database to 0."""
+
+        self.logger.info('Resetting scores for all users')
+
         query = 'UPDATE users SET score = 0'
         self._connection.execute(query)
 
     def add_score(self, username: str, amount: int) -> None:
-        pass
+        """Adds the specific amount to the user's score by username.
 
-    def get_highscores(self) -> Tuple[Tuple[str, int]]:
-        pass
+        Args:
+            username (str): Name of the user. If a Youtube username, replace
+                        any spaces with an underscore. Case insensitive.
+            amount (int): The amount of score points to add.
+
+        Raises:
+            UserNotFoundException: The user specified is not in the database.
+        """
+
+        self.logger.info(f'Adding to {username}\'s score')
+
+        query = 'UPDATE users SET score = score + ? WHERE username = ?'
+        cur = self._connection.execute(query, (amount, username))
+        if cur.rowcount == 0:
+            self.logger.info('User not found, raising exception')
+
+            raise UserNotFoundException()
+
+    def get_highscores(self) -> list[Tuple[str, int]]:
+        """Returns the highest scoring players.
+
+        Queries the database for the highest scoring players with a non-zero
+        score. In the event of a tie, only returns the 6 highest scoring users.
+
+        Returns:
+            list[Tuple[str, int]]: List of name/score pairs in order of their
+                                   placement.
+        """
+
+        self.logger.info('Getting the high scores')
+
+        query = ('SELECT username, score FROM users WHERE score > 0 '
+                 'ORDER BY score DESC LIMIT 6')
+        res: list[Tuple[str, int]] = self._connection.execute(query).fetchall()
+
+        return res
 
     def get_category(self, word: str) -> str:
-        pass
+        """Retrieves the specified word's category.
+
+        Args:
+            word (str): Word to get the category from.
+
+        Raises:
+            WordNotFoundException: The specified word was not found in the
+                                   database.
+
+        Returns:
+            str: The category of the word specified.
+        """
+
+        self.logger.info(f'Getting the category for {word}')
+
+        query = ('SELECT name FROM categories LEFT JOIN wordlist '
+                 'ON categories.id = wordlist.category_id '
+                 'WHERE wordlist.word = ?')
+        res: str = self._connection.execute(query, (word,)).fetchone()[0]
+
+        if res:
+            self.logger.info('Returning category')
+
+            return res
+        else:
+            self.logger.info('Word not in wordlist, raising exception')
+
+            raise WordNotFoundException()
 
     def get_tokens(self, username: str) -> int:
-        pass
+        """Retrieves the number of tokens from the specified user.
 
-    def set_tokens(self, username: str, amount: int) -> None:
-        pass
+        Args:
+            username (str): Name of the user to query the tokens from.
+
+        Returns:
+            int: Number of tokens the user has, or 0 if the user is not found.
+        """
+
+        self.logger.info(f'Getting tokens for {username}')
+
+        query = 'SELECT tokens FROM users WHERE username = ?'
+        res: list[int] = self._connection.execute(query, (username,)).fetchone()
+
+        if res:
+            self.logger.info('Username found, returning tokens')
+
+            return res[0]
+        else:
+            self.logger.info('Username not found, defaulting to 0')
+
+            return 0
+
+    def set_tokens(self, username: str, amount: int) -> bool:
+        """Sets the number of tokens a user has.
+
+        Assigns the specified amount of tokens to a user, if the user is found.
+        The amount is clamped to 0 or above.
+
+        Args:
+            username (str): Name of the user.
+            amount (int): New amount of tokens to give the user.
+
+        Raises:
+            UserNotFoundException: User was not found in the database.
+
+        Returns:
+            bool: Whether or not the query was successful.
+        """
+
+        self.logger.info(f'Setting tokens for {username}')
+
+        # Clamp the amount to 0
+        amount = amount if amount > 0 else 0
+
+        query = 'UPDATE users SET tokens = ? WHERE username = ?'
+        cur = self._connection.execute(query, (amount, username))
+
+        if cur.rowcount == 0:
+            self.logger.info('User not found, raising exception')
+
+            raise UserNotFoundException()
+        else:
+            self.logger.info('User found, tokens were successfully set')
+
+            return True
 
     def add_tokens(self, username: str, amount: int) -> None:
-        pass
+        """Adds some number of tokens to a user.
+
+        Increases the amount of tokens the specified user has by a specified
+        amount. Amount is minimum-clamped to 0.
+
+        Args:
+            username (str): Name of user.
+            amount (int): Positive number of tokens to add to user.
+
+        Raises:
+            UserNotFoundException: User was not found in the database.
+        """
+
+        self.logger.info(f'Adding tokens to {username}')
+
+        if amount <= 0:
+            self.logger.info('Amount is a non-positive or zero amount, '
+                             'nothing to do')
+            return
+
+        query = 'UPDATE users SET tokens = tokens + ? WHERE username = ?'
+        cur = self._connection.execute(query, (amount, username))
+
+        if cur.rowcount == 0:
+            self.logger.info('User not found, raising exception.')
+            raise UserNotFoundException()
 
     def remove_tokens(self, username: str, amount: int) -> None:
-        pass
+        """Removes specified amount of tokens from user.
+
+        Subtracts tokens from the user. Checks if the amount would put the user
+        below 0 and sets the user's tokens to 0 in that case.
+
+        Args:
+            username (str): Name of user.
+            amount (int): Number of tokens to remove.
+
+        Raises:
+            UserNotFoundException: The user was not found in the database.
+        """
+
+        self.logger.info(f'Removing tokens from {username}')
+
+        res = self._connection.execute('SELECT tokens FROM users WHERE '
+                                       'username = ?', (username,)).fetchone()
+
+        if not res:
+            self.logger.info('User not found, raising exception')
+
+            raise UserNotFoundException()
+
+        num_tokens: int = res[0]
+
+        if num_tokens - amount <= 0:
+            self.logger.info('Amount would put user under 0, setting user\'s '
+                             'tokens to 0')
+
+            self._connection.execute('UPDATE users SET tokens = 0 WHERE '
+                                     'username = ?', (username,))
+        else:
+            query = 'UPDATE users SET tokens = tokens - ? WHERE username = ?'
+            self._connection.execute(query, (amount, username))
 
     def add_redeem(self, name: str, cost: int) -> None:
-        pass
+        """Adds redeem to the database.
+
+        Args:
+            name (str): Name of the redeem.
+            cost (int): Cost of the redeem.
+
+        Raises:
+            RedeemExistsException: The redeem name is already in use.
+        """
+
+        self.logger.info(f'Adding redeem {name}')
+
+        query = 'INSERT INTO redeems(name, cost) VALUES (?,?)'
+
+        try:
+            self._connection.execute(query, (name, cost))
+        except sqlite3.IntegrityError:
+            self.logger.info('Redeem name already in use, raising exception')
+
+            raise RedeemExistsException()
 
     def remove_redeem(self, name: str) -> None:
-        pass
+        """Removes redeem from the database.
+
+        Args:
+            name (str): Name of the redeem to remove
+
+        Raises:
+            RedeemNotFoundException: The redeem is not in the database.
+        """
+
+        self.logger.info(f'Removing {name} redeem from the database')
+
+        query = 'DELETE FROM redeems WHERE name = ?'
+        cur = self._connection.execute(query, (name,))
+
+        if cur.rowcount == 0:
+            self.logger.info('Redeem not in database, raising exception')
+
+            raise RedeemNotFoundException()
 
     def modify_redeem(self, name: str, new_name: str, new_cost: int) -> None:
-        pass
+        """Changes the name and cost of a redeem.
+
+        Args:
+            name (str): Name of the modified redeem.
+            new_name (str): New name for the redeem.
+            new_cost (int): New cost for the redeem.
+
+        Raises:
+            RedeemNotFoundException: The redeem is not in the database.
+        """
+
+        self.logger.info(f'Modifying redeem {name}')
+
+        query = 'UPDATE redeems SET name = ?, cost = ? WHERE name = ?'
+        cur = self._connection.execute(query, (new_name, new_cost, name))
+
+        if cur.rowcount == 0:
+            self.logger.info('Redeem not in database, raising exception')
+
+            raise RedeemNotFoundException()
 
     def migrate_user(self, old_username: str, new_username: str) -> None:
-        pass
+        """Adds the score and tokens from an old username to a new user.
+
+        Queries the database for the score and tokens stored in an old username.
+        If found, adds that score and tokens to a new user by the new username.
+        Also deletes the old account from the database.
+
+        Args:
+            old_username (str): Name of the old user account.
+            new_username (str): Name of the user account to migrate the data to.
+
+        Raises:
+            UserNotFoundException: Either the old or new usernames were not
+                                   found.
+        """
+
+        self.logger.info(f'Migrating user {old_username}')
+
+        get_old_data_query = ('SELECT score, tokens FROM users WHERE '
+                              'username = ?')
+        del_user_query = 'DELETE FROM users WHERE username = ?'
+        upd_user_query = ('UPDATE users SET score = score + ?, tokens = tokens '
+                          '+ ? WHERE username = ?')
+
+        self.logger.info('Getting old user data')
+
+        cur = self._connection.execute(get_old_data_query, (old_username,))
+
+        old_data = cur.fetchone()
+
+        if not old_data:
+            self.logger.info('Previous user not found, raising exception')
+
+            raise UserNotFoundException(old_username)
+
+        if not self._connection.execute('SELECT * FROM users WHERE username = '
+                                        '?', (new_username,)).fetchone():
+            self.logger.info('New user not found, raising exception')
+
+            raise UserNotFoundException(new_username)
+
+        self.logger.info('Removing old username from the database')
+
+        self._connection.execute(del_user_query, (old_username,))
+
+        self.logger.info('Migrating data to new username')
+
+        self._connection.execute(upd_user_query, (old_data[0], old_data[1],
+                                                  new_username))
 
     def get_remaining_word_count(self) -> int:
-        pass
+        """Retrieves the number of words remaining."""
+
+        self.logger.info('Getting the number of remaining words.')
+
+        query = 'SELECT COUNT(word) FROM wordlist'
+        num_words: int = self._connection.execute(query).fetchone()[0]
+
+        return num_words
 
     def remove_word(self, word: str) -> None:
-        pass
+        """Removes a word from the word list.
 
-    def get_words(self) -> Tuple[Tuple[str, str]]:
-        pass
+        Args:
+            word (str): Word to be removed.
+
+        Raises:
+            WordNotFoundException: Word not found in database.
+        """
+
+        self.logger.info(f'Removing {word} from database')
+
+        query = 'DELETE FROM wordlist WHERE word = ?'
+        cur = self._connection.execute(query, (word,))
+
+        if cur.rowcount == 0:
+            self.logger.info('Word not found in database, raising exception')
+
+            raise WordNotFoundException()
+
+    def get_words(self) -> list[Tuple[str, str]]:
+        """Queries the database for the list of words and their categories."""
+
+        self.logger.info('Getting the list of words and categories')
+
+        query = ('SELECT wl.word, c.name FROM wordlist AS wl LEFT JOIN '
+                 'categories AS c WHERE c.id = wl.category_id')
+        wordlist: list[Tuple[str, str]] = (self._connection.execute(query)
+                                           .fetchall())
+
+        return wordlist
 
     def add_word(self, word: str, category: str) -> None:
-        pass
+        """Adds word to category.
+
+        Args:
+            word (str): Word to be added.
+            category (str): Category to assign word to.
+
+        Raises:
+            CategoryNotFoundException: Category not in database.
+            WordExistsException: Word already in database.
+        """
+
+        self.logger.info(f'Adding {word} to database')
+
+        cat_query = 'SELECT id FROM categories WHERE name = ?'
+        word_query = 'INSERT INTO wordlist(word, category_id) VALUES (?,?)'
+
+        cat_id = self._connection.execute(cat_query, (category,)).fetchone()
+
+        if not cat_id:
+            self.logger.info('Category does not exist, raising exception')
+
+            raise CategoryNotFoundException()
+
+        else:
+            cat_id = cat_id[0]
+
+        try:
+            self._connection.execute(word_query, (word, cat_id))
+        except sqlite3.IntegrityError:
+            self.logger.info('Word already in database, raising exception')
+
+            raise WordExistsException()
 
     def add_words(self, words: list[str], category: str) -> None:
-        pass
+        """Inserts new words into the database under the specified category.
+
+        Adds a new list of words to the database. If the category is not already
+        defined, also defines a new category. Raises an exception and rolls back
+        the database in the event of a duplicate word being added.
+
+        Args:
+            words (list[str]): The word list to add.
+            category (str): The category assigned to each word.
+
+        Raises:
+            WordExistsException: One or more words are already in the database.
+        """
+
+        self.logger.info('Adding list of words to database')
+
+        cat_query = 'SELECT id FROM categories WHERE name = ?'
+        wordlist_query = 'INSERT INTO wordlist(word, category_id) VALUES (?,?)'
+
+        cat_id = self._connection.execute(cat_query, (category,)).fetchone()
+
+        if not cat_id:
+            self.logger.info('Category does not exist, creating')
+
+            cur = self._connection.execute('INSERT INTO categories(name) '
+                                           'VALUES (?)', (category,))
+            cat_id = cur.lastrowid
+        else:
+            cat_id = cat_id[0]
+
+        items = [(word, cat_id) for word in words]
+        try:
+            self.logger.info('Inserting words into database')
+            cur = self._connection.cursor()
+
+            # cur.execute('BEGIN TRANSACTION')
+
+            cur.executemany(wordlist_query, items)
+        except sqlite3.IntegrityError:
+            self.logger.info('Word already exists in database, rolling back '
+                             'and raising exception')
+
+            self._connection.rollback()
+
+            raise WordExistsException()
+        else:
+            self._connection.commit()
 
     def set_wordlist(self, word_list: dict[str, list[str]]) -> None:
-        pass
+        """Replaces the existing wordlist with a new one.
+
+        Removes the existing wordlist and categories, if they exist. Once the
+        tables are empty, inserts categories into the database. There are no
+        checks for pre-existing categories as Python's dictionaries don't allow
+        same-keys to exist.
+
+        After categories have been added, uses a cache of category IDs to add
+        new words to the wordlist.
+
+        Args:
+            word_list (dict[str, list[str]]):
+                Key-value pairing of categories and their associated list. The
+                key is the name of the category, with a list of strings to
+                define the words.
+
+        Raises:
+            WordExistsException: The same word exists in the wordlist.
+        """
+
+        self.logger.info('Replacing the existing wordlist')
+
+        self._connection.commit()
+        cur = self._connection.cursor()
+        cur.execute('BEGIN TRANSACTION')
+
+        self.logger.info('Dropping old tables')
+
+        cur.execute('DELETE FROM wordlist')
+        cur.execute('DELETE FROM categories')
+
+        cat_ids: dict[str, int] = {}
+
+        query = 'INSERT INTO categories(name) VALUES (?)'
+
+        # While we could use Sqlite3's `executemany`, this allows us to
+        # cache the category IDs, instead of needing multiple SELECT
+        # queries.
+        for category in word_list.keys():
+            cur.execute(query, (category,))
+            cat_ids[category] = cur.lastrowid
+
+        try:
+            self.logger.info('Creating new wordlist')
+
+            query = 'INSERT INTO wordlist (word, category_id) VALUES (?,?)'
+
+            for cat, words in word_list.items():
+                seq_of_params = [(word, cat_ids[cat]) for word in words]
+                cur.executemany(query, seq_of_params)
+        except sqlite3.IntegrityError:
+            self.logger.info('Duplicate word found, rolling back and raising '
+                             'exception')
+
+            self._connection.rollback()
+            raise WordExistsException()
+
+        self.logger.info('Wordlist in database updated')
+
+        self._connection.commit()
 
     def set_meta(self, name: str, data: str) -> None:
-        pass
+        """Assigns a meta row in the database.
+
+        Args:
+            name (str): Name of metadata.
+            data (str): Str-formatted blob of data to be stored.
+        """
+
+        self.logger.info(f'Writing {name} to the meta table')
+
+        query = 'INSERT OR REPLACE INTO meta(name, data) VALUES (?,?)'
+
+        self._connection.execute(query, (name, data))
 
     def get_meta(self, name: str) -> str:
-        pass
+        """Retrieves metadata from the database.
 
-    def get_all_redeems(self) -> Tuple[Tuple[str, int]]:
-        pass
+        Args:
+            name (str): Metadata key.
+
+        Raises:
+            MetaNotFoundException: Metadata key not in the database.
+
+        Returns:
+            str: Metadata stored in the database.
+        """
+
+        self.logger.info(f'Getting {name} from database meta table')
+
+        query = 'SELECT data FROM meta WHERE name = ?'
+
+        res: list[str] = self._connection.execute(query, (name,)).fetchone()
+
+        if not res:
+            self.logger.info('Meta row not found, raising exception')
+
+            raise MetaNotFoundException()
+
+        return res[0]
+
+    def get_all_redeems(self) -> list[Tuple[str, int]]:
+        """Retrieves all redeems and their costs from the database.
+
+        Returns:
+            list[Tuple[str, int]]: Redeem and cost pairs from the database.
+        """
+        self.logger.info('Getting all redeems in the database')
+
+        query = 'SELECT name, cost FROM redeems'
+
+        return self._connection.execute(query).fetchall()
 
     def get_redeem_cost(self, name: str) -> int:
-        pass
+        self.logger.info(f'Getting cost of {name} redeem')
+
+        query = 'SELECT cost FROM redeems WHERE name = ?'
+
+        res: list[int] = self._connection.execute(query, (name,)).fetchone()
+
+        if not res:
+            self.logger.info('Redeem not found, raising exception')
+
+            raise RedeemNotFoundException()
+
+        return res[0]
