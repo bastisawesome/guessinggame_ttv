@@ -1,0 +1,4 @@
+[run]
+omit =
+    tests/
+    src/guessinggame_ttv/interface.py
