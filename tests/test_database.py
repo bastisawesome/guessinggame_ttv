@@ -1,11 +1,15 @@
 import sqlite3
 import pytest
 
-from guessinggame_ttv.database import (DatabaseManager, RedeemExistsException,
+from typing import Tuple
+from guessinggame_ttv.database import (CategoryNotFoundException,
+                                       DatabaseManager,
+                                       RedeemExistsException,
                                        RedeemNotFoundException,
                                        UserNotFoundException,
                                        WordExistsException,
-                                       WordNotFoundException)
+                                       WordNotFoundException,
+                                       MetaNotFoundException)
 
 
 @pytest.mark.parametrize('tablename,expschema',
@@ -160,7 +164,7 @@ def test_set_tokens(dbmanagerfilled: DatabaseManager,
                     amount: int) -> None:
     dbmanagerfilled.set_tokens(username, amount)
     tokens = dbconn.execute('SELECT tokens FROM users WHERE username = ?',
-                            [username]).fetchone()
+                            [username]).fetchone()[0]
 
     assert tokens == amount
 
@@ -171,8 +175,8 @@ def test_set_tokens_invalid(dbmanagerfilled: DatabaseManager,
         dbmanagerfilled.set_tokens('invalid_user', 100)
 
     dbmanagerfilled.set_tokens('MultiDarkSamuses', -1)
-    tokens = dbconn.execute('SELECT tokens FROM user WHERE username = '
-                            '"MultiDarkSamuses"').fetchone()
+    tokens = dbconn.execute('SELECT tokens FROM users WHERE username = '
+                            '"MultiDarkSamuses"').fetchone()[0]
 
     assert tokens == 0
 
@@ -181,7 +185,7 @@ def test_add_tokens(dbmanagerfilled: DatabaseManager,
                     dbconn: sqlite3.Connection) -> None:
     dbmanagerfilled.add_tokens('MultiDarkSamuses', 4)
     tokens = dbconn.execute('SELECT tokens FROM users WHERE username = '
-                            '"MultiDarkSamuses"').fetchone()
+                            '"MultiDarkSamuses"').fetchone()[0]
 
     assert tokens == 9
 
@@ -200,7 +204,7 @@ def test_remove_tokens(dbmanagerfilled: DatabaseManager,
                        expected: int) -> None:
     dbmanagerfilled.remove_tokens(username, amount)
     res = dbconn.execute('SELECT tokens FROM users WHERE username = ?',
-                         [(username)]).fetchone()
+                         [(username)]).fetchone()[0]
 
     assert res == expected
 
@@ -231,7 +235,7 @@ def test_remove_redeem(dbmanagerfilled: DatabaseManager,
     res = dbconn.execute('SELECT * FROM redeems WHERE name = ?',
                          ['dummyredeem2']).fetchone()
 
-    assert len(res) == 0
+    assert res is None
 
 
 def test_remove_redeem_invalid(dbmanagerfilled: DatabaseManager) -> None:
@@ -248,7 +252,7 @@ def test_modify_redeem(dbmanagerfilled: DatabaseManager,
             .fetchone())
 
     assert res1 == ('renamedredeem', 40)
-    assert len(res2) == 0
+    assert res2 is None
 
 
 def test_modify_redeem_invalid(dbmanagerfilled: DatabaseManager) -> None:
@@ -265,12 +269,16 @@ def test_migrate_user(dbmanagerfilled: DatabaseManager,
             .fetchone())
 
     assert res1 == ('MultiDarkSamuses', 7, 6)
-    assert len(res2) == 0
+    assert res2 is None
 
 
-def test_migrate_user_invalid(dbmanagerfilled: DatabaseManager) -> None:
+@pytest.mark.parametrize('old_username,new_username',
+                         [['InvalidUser', 'NewInvalidUser'],
+                          ['DummyUser', 'MoreInvalidUsers']])
+def test_migrate_user_invalid(dbmanagerfilled: DatabaseManager,
+                              old_username: str, new_username: str) -> None:
     with pytest.raises(UserNotFoundException):
-        dbmanagerfilled.migrate_user('InvalidUser', 'NewInvalidUser')
+        dbmanagerfilled.migrate_user(old_username, new_username)
 
 
 def test_get_remaining_word_count(dbmanagerfilled: DatabaseManager,
@@ -288,9 +296,11 @@ def test_get_remaining_word_count(dbmanagerfilled: DatabaseManager,
 def test_remove_word(dbmanagerfilled: DatabaseManager,
                      dbconn: sqlite3.Connection) -> None:
     dbmanagerfilled.remove_word('word3')
-    res = dbconn.execute('SELECT word FROM wordlist').fetchone()
+    res = dbconn.execute('SELECT word FROM wordlist').fetchall()
 
-    assert res == ('word1', 'word2', 'word4')
+    word_list = [word[0] for word in res]
+
+    assert word_list == ['word1', 'word2', 'word4']
 
 
 def test_remove_word_invalid(dbmanagerfilled: DatabaseManager) -> None:
@@ -321,7 +331,12 @@ def test_add_word(dbmanagerfilled: DatabaseManager,
 
 def test_add_word_duplicate(dbmanagerfilled: DatabaseManager) -> None:
     with pytest.raises(WordExistsException):
-        dbmanagerfilled.add_word('word1', 'category')
+        dbmanagerfilled.add_word('word1', 'dummy1')
+
+
+def test_add_word_missing_category(dbmanagerfilled: DatabaseManager) -> None:
+    with pytest.raises(CategoryNotFoundException):
+        dbmanagerfilled.add_word('word1', 'invalidcategory')
 
 
 def test_add_words_old_category(dbmanagerfilled: DatabaseManager,
@@ -332,7 +347,9 @@ def test_add_words_old_category(dbmanagerfilled: DatabaseManager,
                           '"dummy1"')
            .fetchall())
 
-    assert {'NewWord1', 'NewWord2'}.issubset(res)
+    words = [word[0] for word in res]
+
+    assert {'NewWord1', 'NewWord2'}.issubset(words)
 
 
 def test_add_words_new_category(dbmanagerfilled: DatabaseManager,
@@ -342,12 +359,27 @@ def test_add_words_new_category(dbmanagerfilled: DatabaseManager,
                          'category_id = categories.id WHERE categories.name = '
                          '"Metroid"').fetchall()
 
-    assert {'Samus', 'Sbug'}.issubset(res)
+    words = [word[0] for word in res]
+
+    assert {'Samus', 'Sbug'}.issubset(words)
 
 
 def test_add_words_duplicate(dbmanagerfilled: DatabaseManager) -> None:
     with pytest.raises(WordExistsException):
-        dbmanagerfilled.add_words(['word1'], 'new_category')
+        dbmanagerfilled.add_words(['newword', 'word1'], 'new_category')
+
+
+def test_add_words_duplicate_mixed(dbmanager: DatabaseManager,
+                                   dbconn: sqlite3.Connection) -> None:
+    dbconn.execute('INSERT INTO categories(name) VALUES ("testcat")')
+    dbconn.execute('INSERT INTO wordlist(word, category_id) VALUES '
+                   '("word1", 1)')
+
+    with pytest.raises(WordExistsException):
+        dbmanager.add_words(['newword', 'word1'], 'dummy1')
+        newword_exists = dbconn.execute('SELECT * FROM wordlist WHERE word = '
+                                        '"newword"').fetchone()
+        assert newword_exists is None
 
 
 def test_set_wordlist(dbmanagerfilled: DatabaseManager) -> None:
@@ -356,17 +388,31 @@ def test_set_wordlist(dbmanagerfilled: DatabaseManager) -> None:
     dbmanagerfilled.set_wordlist(new_wordlist)
 
     res = dbmanagerfilled.get_words()
+    print(res)
 
-    for t in res:
-        for word, cat in res:
-            assert word in new_wordlist[cat]
+    expected: list[Tuple[str, str]] = []
+    for cat, words in new_wordlist.items():
+        for word in words:
+            expected.append((word, cat))
+
+    assert res == expected
+
+
+def test_set_wordlist_duplicate_word(dbmanager: DatabaseManager) -> None:
+    new_wordlist = {'Cat1': ['Meow', 'Purr'],
+                    'Cat2': ['Pounce', 'meow']}
+
+    with pytest.raises(WordExistsException):
+        dbmanager.set_wordlist(new_wordlist)
+
+    assert dbmanager.get_words() == []
 
 
 def test_set_meta(dbmanager: DatabaseManager,
                   dbconn: sqlite3.Connection) -> None:
     dbmanager.set_meta('testmeta', '10')
     res = (dbconn.execute('SELECT data FROM meta WHERE name = "testmeta"')
-           .fetchone())
+           .fetchone()[0])
 
     assert res == '10'
     assert int(res) == 10
@@ -374,8 +420,8 @@ def test_set_meta(dbmanager: DatabaseManager,
     # Test overriding meta
 
     dbmanager.set_meta('testmeta', 'new data')
-    res = (dbconn.execute('SELECT value FROM meta WHERE name = "testmeta"')
-           .fetchone())
+    res = (dbconn.execute('SELECT data FROM meta WHERE name = "testmeta"')
+           .fetchone()[0])
 
     assert res == 'new data'
 
@@ -388,6 +434,11 @@ def test_get_meta(dbmanagerfilled: DatabaseManager, name: str,
     res = dbmanagerfilled.get_meta(name)
 
     assert res == expected
+
+
+def test_get_meta_invalid(dbmanager: DatabaseManager) -> None:
+    with pytest.raises(MetaNotFoundException):
+        dbmanager.get_meta('InvalidMeta')
 
 
 def test_get_all_redeems(dbmanagerfilled: DatabaseManager) -> None:
