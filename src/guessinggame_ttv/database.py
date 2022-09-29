@@ -161,7 +161,7 @@ class DatabaseManager:
     def _table_exists(self, tablename: str) -> bool:
         exists_query = ('SELECT * FROM sqlite_master WHERE type = "table" AND '
                         f'name = "{tablename}"')
-        print(exists_query)
+
         exists = self._connection.execute(exists_query).fetchone()
 
         return exists is not None
