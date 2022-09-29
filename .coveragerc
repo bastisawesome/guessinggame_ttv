@@ -1,4 +1,6 @@
 [run]
+# Obviously omit tests, but also omit interface.py due to the interface design
+# being incapable of automated testing.
 omit =
     tests/
     src/guessinggame_ttv/interface.py
