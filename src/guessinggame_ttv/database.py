@@ -70,7 +70,8 @@ class DatabaseManager:
 
             conn = sqlite3.connect('file:testdb?mode=memory&cache=shared',
                                    uri=True,
-                                   detect_types=sqlite3.PARSE_DECLTYPES)
+                                   detect_types=sqlite3.PARSE_DECLTYPES,
+                                   check_same_thread=False)
 
             self.logger.info('Connected to in-memory database')
         else:
