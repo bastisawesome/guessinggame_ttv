@@ -89,7 +89,8 @@ class DatabaseManager:
                 create_database = False
 
             conn = sqlite3.connect(db_path,
-                                   detect_types=sqlite3.PARSE_DECLTYPES)
+                                   detect_types=sqlite3.PARSE_DECLTYPES,
+                                   check_same_thread=False)
 
             self.logger.info('Created connection to database on disk')
 
