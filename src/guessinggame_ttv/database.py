@@ -51,8 +51,9 @@ class DatabaseManager:
     def __init__(self, _in_memory: bool = False):
         '''Database Management object used to control the Sqlite3 database.
 
-        :param _in_memory: Tells the manager to use an in-memory database,
-        **only use for testing**.
+        Args:
+            _in_memory (bool): Tells the manager to use an in-memory database,
+                **only use for testing**.
         '''
         self.logger = logging.getLogger('guessinggame_ttv')
         self.logger.info('Initialising DatabaseManager')
