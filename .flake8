@@ -6,9 +6,10 @@
 # this configuration.
 
 [flake8]
-exclude = 
+exclude =
     .git
     __pycache__
+    build
 
 max-line-length = 80
 # Matching the general line length for consistency
