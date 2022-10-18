@@ -174,14 +174,21 @@ class DBManagerMock(DatabaseManager):
         return out_l
 
     def words_as_list(self) -> list[str]:
-        l = [word for words in self.wordlist.values() for word in words]
-        return l
+        wl = [word for words in self.wordlist.values() for word in words]
+        return wl
 
     def add_user(self, username: str, score: int = 0, tokens: int = 0) -> None:
         self.users[username] = {
             'score': score,
             'tokens': tokens
         }
+
+    def get_highscores(self) -> list[Tuple[str, int]]:
+        hs: list[Tuple[str, int]] = []
+        for username, vals in self.users.items():
+            hs.append((username, vals['score']))
+
+        return hs
 
 
 @ pytest.fixture(scope='function')

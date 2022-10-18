@@ -127,7 +127,7 @@ def test_process_lose(gameobj: Game) -> None:
     assert results.words_remaining == 2
 
 
-def test__end_round(gameobj: Game) -> None:
+def test_end_round(gameobj: Game) -> None:
     db: DBManagerMock = gameobj._databasemanager
     db.users['testuser']['score'] = 5
     db.users['testuser2'] = {
@@ -143,7 +143,7 @@ def test__end_round(gameobj: Game) -> None:
         'tokens': 0
     }
 
-    gameobj._end_round()
+    gameobj.end_round()
 
     assert db.users['testuser']['score'] == 0
     assert db.users['testuser']['tokens'] == 3
