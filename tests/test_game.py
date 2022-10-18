@@ -8,9 +8,9 @@ def test_game_initialisation() -> None:
     assert game.logger is not None
     assert game._databasemanager is not None
     assert game.running is True
-    assert game.current_word is not None
-    assert game.current_point_value is not None
-    assert game.current_category is not None
+    assert game.word is not None
+    assert game.point_value is not None
+    assert game.category is not None
 
 
 def test_game_init_round_end() -> None:
@@ -20,9 +20,9 @@ def test_game_init_round_end() -> None:
     game = Game(dbmanmock)
 
     assert game.running is False
-    assert game.current_word == ''
-    assert game.current_point_value == 0
-    assert game.current_category == ''
+    assert game.word == ''
+    assert game.point_value == 0
+    assert game.category == ''
 
 
 def test__load_previous_data_none() -> None:
@@ -31,17 +31,21 @@ def test__load_previous_data_none() -> None:
 
     assert game._load_previous_data() is False
 
+
+def test__load_previous_data() -> None:
+    dbmanmock = DBManagerMock()
     test_meta = {
         'cur_word': 'testword',
         'cur_cat': 'testcat',
         'cur_points': '5',
     }
     dbmanmock.meta.update(test_meta)
+    game = Game(dbmanmock)
 
     assert game._load_previous_data() is True
-    assert game.current_word == test_meta['cur_word']
-    assert game.current_category == test_meta['cur_cat']
-    assert game.current_point_value == int(test_meta['cur_points'])
+    assert game.word == test_meta['cur_word']
+    assert game.category == test_meta['cur_cat']
+    assert game.point_value == int(test_meta['cur_points'])
 
 
 def test_choose_new_word(gameobj: Game) -> None:
@@ -53,9 +57,9 @@ def test_choose_new_word(gameobj: Game) -> None:
     # But we know the constraints are what is contained in the database,
     # so we test against what is in the database.
     assert gameobj.choose_new_word() is True
-    assert gameobj.current_word in wordlist
-    assert gameobj.current_category in catlist
-    assert gameobj.current_word not in db.wordlist
+    assert gameobj.word in wordlist
+    assert gameobj.category in catlist
+    assert gameobj.word not in db.wordlist
 
     db.wordlist = {}
 
@@ -77,22 +81,19 @@ def test_update_point_value(gameobj: Game) -> None:
     }
 
     gameobj.update_point_value()
-    assert gameobj.current_point_value == 3
+    assert gameobj.point_value == 3
 
     gameobj._databasemanager.wordlist = more_than_11
     gameobj.update_point_value()
-    assert gameobj.current_point_value == 2
+    assert gameobj.point_value == 2
 
     gameobj._databasemanager.wordlist = more_than_20
     gameobj.update_point_value()
-    assert gameobj.current_point_value == 3
+    assert gameobj.point_value == 1
 
 
 def test_process_win_round_continue(gameobj: Game) -> None:
-    db: DBManagerMock = gameobj._databasemanager
-    # We can't know what the current word is, so we create a message with
-    # every single word in it.
-    message = ' '.join(db.words_as_list())
+    message = ' '.join(DBManagerMock().words_as_list())
     user = 'testuser'
 
     results = gameobj.process(user, message)
@@ -105,8 +106,8 @@ def test_process_win_round_continue(gameobj: Game) -> None:
 
 def test_process_win_round_end(gameobj: Game) -> None:
     db: DBManagerMock = gameobj._databasemanager
-    db.wordlist = {'testcat': ['word1']}
-    message = 'word1'
+    db.wordlist = {}
+    message = gameobj._current_word
     user = 'testuser'
 
     results = gameobj.process(user, message)

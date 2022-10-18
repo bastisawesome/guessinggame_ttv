@@ -1,5 +1,6 @@
 from guessinggame_ttv.database import (
-    DatabaseManager, UserNotFoundException, WordNotFoundException)
+    DatabaseManager, UserNotFoundException, WordNotFoundException,
+    MetaNotFoundException, CategoryNotFoundException)
 from guessinggame_ttv.game import Game
 
 import logging
@@ -84,7 +85,10 @@ class DBManagerMock(DatabaseManager):
         self.categories = ['test_cat']
 
     def get_meta(self, name: str) -> str | None:
-        return self.meta.get(name, None)
+        try:
+            return self.meta[name]
+        except KeyError:
+            raise MetaNotFoundException
 
     def set_meta(self, name: str, value: str) -> None:
         self.meta[name] = str(value)
@@ -112,7 +116,7 @@ class DBManagerMock(DatabaseManager):
             if word in words:
                 return cat
         else:
-            return None
+            raise CategoryNotFoundException
 
     def get_tokens(self, username: str) -> int:
         user = self.users.get(username, None)
@@ -156,6 +160,7 @@ class DBManagerMock(DatabaseManager):
         for words in self.wordlist.values():
             if word in words:
                 words.remove(word)
+                break
         else:
             raise WordNotFoundException
 
@@ -169,7 +174,14 @@ class DBManagerMock(DatabaseManager):
         return out_l
 
     def words_as_list(self) -> list[str]:
-        return [word for words in self.wordlist.values() for word in words]
+        l = [word for words in self.wordlist.values() for word in words]
+        return l
+
+    def add_user(self, username: str, score: int = 0, tokens: int = 0) -> None:
+        self.users[username] = {
+            'score': score,
+            'tokens': tokens
+        }
 
 
 @ pytest.fixture(scope='function')
