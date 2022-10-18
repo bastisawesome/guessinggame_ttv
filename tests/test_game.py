@@ -21,7 +21,7 @@ def test_game_init_round_end() -> None:
 
     assert game.running is False
     assert game.current_word == ''
-    assert game.current_point_value == ''
+    assert game.current_point_value == 0
     assert game.current_category == ''
 
 
