@@ -6,7 +6,7 @@ def test_game_initialisation() -> None:
     game = Game(DBManagerMock())
 
     assert game.logger is not None
-    assert game.databasemanager is not None
+    assert game._databasemanager is not None
     assert game.running is True
     assert game.current_word is not None
     assert game.current_point_value is not None
