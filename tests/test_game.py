@@ -32,16 +32,16 @@ def test__load_previous_data_none() -> None:
     assert game._load_previous_data() is False
 
     test_meta = {
-        'prev_word': 'testword',
-        'prev_cat': 'testcat',
-        'prev_points': '5',
+        'cur_word': 'testword',
+        'cur_cat': 'testcat',
+        'cur_points': '5',
     }
     dbmanmock.meta.update(test_meta)
 
     assert game._load_previous_data() is True
-    assert game.current_word == test_meta['prev_word']
-    assert game.current_category == test_meta['prev_cat']
-    assert game.current_point_value == int(test_meta['prev_points'])
+    assert game.current_word == test_meta['cur_word']
+    assert game.current_category == test_meta['cur_cat']
+    assert game.current_point_value == int(test_meta['cur_points'])
 
 
 def test_choose_new_word(gameobj: Game) -> None:
@@ -155,3 +155,34 @@ def test__end_round(gameobj: Game) -> None:
 
     assert db.users['testuser']['score'] == 0
     assert db.users['testuser']['tokens'] == 1
+
+
+def test_teardown_running(gameobj: Game) -> None:
+    db: DBManagerMock = gameobj._databasemanager
+
+    gameobj.teardown()
+
+    meta = db.meta
+
+    assert gameobj._current_word == meta['cur_word']
+    assert gameobj._current_category == meta['cur_cat']
+    assert gameobj._current_point_value == meta['cur_points']
+    assert meta['round_end'] == 'False'
+    assert meta['update_round'] == 'False'
+    assert meta['distribute_points'] == 'False'
+
+
+def test_teardown_not_running(gameobj: Game) -> None:
+    db: DBManagerMock = gameobj._databasemanager
+
+    gameobj._running = False
+    gameobj.teardown()
+
+    meta = db.meta
+
+    assert meta.get('cur_word') is None
+    assert meta.get('cur_cat') is None
+    assert meta.get('cur_points') is None
+    assert meta['round_end'] == 'True'
+    assert meta['update_round'] == 'False'
+    assert meta['distribute_points'] == 'False'

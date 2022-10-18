@@ -87,7 +87,7 @@ class DBManagerMock(DatabaseManager):
         return self.meta.get(name, None)
 
     def set_meta(self, name: str, value: str) -> None:
-        self.meta[name] = value
+        self.meta[name] = str(value)
 
     def get_score(self, username: str) -> int:
         user = self.users.get(username, None)
