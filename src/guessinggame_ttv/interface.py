@@ -427,6 +427,7 @@ class Interface:
 
         self.databasemanager.set_wordlist({})
         self.databasemanager.set_meta('round_end', 'True')
+        self.databasemanager.set_meta('distribute_points', 'True')
 
         self.logger.info('Wiped the current wordlist, returning to previous '
                          'menu')
