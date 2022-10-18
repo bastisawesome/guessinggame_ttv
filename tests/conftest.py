@@ -138,7 +138,7 @@ class DBManagerMock(DatabaseManager):
         user = self.users.get(username, None)
 
         if user:
-            user['tokens'] -= amount
+            user['tokens'] += amount
         else:
             raise UserNotFoundException()
 

@@ -154,8 +154,8 @@ def test_end_round(gameobj: Game) -> None:
     assert db.users['testuser3']['score'] == 0
     assert db.users['testuser3']['tokens'] == 2
 
-    assert db.users['testuser']['score'] == 0
-    assert db.users['testuser']['tokens'] == 1
+    assert db.users['testuser4']['score'] == 0
+    assert db.users['testuser4']['tokens'] == 1
 
 
 def test_teardown_running(gameobj: Game) -> None:
@@ -167,7 +167,7 @@ def test_teardown_running(gameobj: Game) -> None:
 
     assert gameobj._current_word == meta['cur_word']
     assert gameobj._current_category == meta['cur_cat']
-    assert gameobj._current_point_value == meta['cur_points']
+    assert gameobj._current_point_value == int(meta['cur_points'])
     assert meta['round_end'] == 'False'
     assert meta['update_round'] == 'False'
     assert meta['distribute_points'] == 'False'
