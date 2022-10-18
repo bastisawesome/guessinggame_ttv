@@ -17,6 +17,10 @@ class UserNotFoundException(DatabaseException):
     pass
 
 
+class UserExistsException(DatabaseException):
+    pass
+
+
 class RedeemExistsException(DatabaseException):
     pass
 
@@ -964,3 +968,15 @@ class DatabaseManager:
             raise RedeemNotFoundException()
 
         return res[0]
+
+    def add_user(self, username: str, score: int = 0, points: int = 0) -> None:
+        self.logger.info(f'Adding user {username} to the database')
+
+        query = 'INSERT INTO users (username, score, points) VALUES (?, ?, ?)'
+
+        try:
+            self._connection.execute(query, (username, score, points))
+        except sqlite3.IntegrityError:
+            self.logger.info('User already exists, raising exception')
+
+            raise UserExistsException()
