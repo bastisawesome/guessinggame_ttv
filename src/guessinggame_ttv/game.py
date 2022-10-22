@@ -38,6 +38,8 @@ class Game:
         except MetaNotFoundException:
             self.logger.info('No need to update the round')
 
+            update_round = False
+
         try:
             self.logger.info('Checking if the previous round has ended')
 
