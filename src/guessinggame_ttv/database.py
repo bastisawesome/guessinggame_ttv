@@ -5,9 +5,6 @@ import sqlite3
 import logging
 import pathlib
 
-# Temporarily disable all logging until the logging module can be configured
-logging.disable()
-
 
 class DatabaseException(Exception):
     pass
@@ -368,6 +365,8 @@ class DatabaseManager:
         self._connection.execute('INSERT OR REPLACE INTO meta (name, data) '
                                  ' VALUES ( "schema_version", ?)',
                                  [str(self.schema_version)])
+
+        self._connection.commit()
 
         self.logger.info('Closing database connection')
 
