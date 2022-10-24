@@ -286,11 +286,7 @@ class Game:
         high = users[0][1]
         low = users[-1][1]
 
-        print(f'{high=}')
-        print(f'{low=}')
-
         for user, score in users:
-            print(f'{user=}, {score=}')
             if score == high:
                 self._databasemanager.add_tokens(user, 3)
             elif score > low:
