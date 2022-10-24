@@ -971,7 +971,7 @@ class DatabaseManager:
     def add_user(self, username: str, score: int = 0, points: int = 0) -> None:
         self.logger.info(f'Adding user {username} to the database')
 
-        query = 'INSERT INTO users (username, score, points) VALUES (?, ?, ?)'
+        query = 'INSERT INTO users (username, score, tokens) VALUES (?, ?, ?)'
 
         try:
             self._connection.execute(query, (username, score, points))
