@@ -443,9 +443,17 @@ class DatabaseManager:
 
         self.logger.info('Getting the high scores')
 
-        query = ('SELECT username, score FROM users WHERE score > 0 '
-                 'ORDER BY score DESC LIMIT 6')
-        res: list[Tuple[str, int]] = self._connection.execute(query).fetchall()
+        highest_score_query = ('SELECT score FROM users ORDER BY score DESC '
+                               'LIMIT 3')
+        highest_scores = self._connection.execute(
+            highest_score_query).fetchall()
+        highest_scores = [score[0] for score in highest_scores]
+
+        query = ('SELECT username, score FROM users WHERE (score == ? OR score '
+                 '== ? OR score == ?) AND score > 0 ORDER BY score DESC LIMIT '
+                 '6')
+        res: list[Tuple[str, int]] = self._connection.execute(
+            query, highest_scores).fetchall()
 
         return res
 
