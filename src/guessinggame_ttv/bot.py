@@ -28,8 +28,7 @@ class Permissions(enum.IntEnum):
     BROADCASTER = enum.auto()
 
 
-def parse_params(message: str, num_params: int,
-                 is_command: bool = False) -> list[str] | None:
+def parse_params(message: str, num_params: int) -> list[str] | None:
     """Parses a message for a given number of parameters.
 
     Splits a message into a list based on the number of parameters specified.
@@ -58,16 +57,18 @@ def parse_params(message: str, num_params: int,
     if not message:
         return None
 
-    if is_command:
-        if message.find(' ') == -1:
-            raise NotEnoughParamsException()
+    if message.find(' ') == -1:
+        raise NotEnoughParamsException()
 
-        message = message[message.find(' ')+1:]
+    message = message[message.find(' ')+1:]
 
     params = message.split(' ', num_params)
 
     if len(params) < num_params:
         raise NotEnoughParamsException()
+
+    if len(params) == num_params:
+        params.append('')
 
     return params
 
@@ -111,6 +112,10 @@ def check_permissions(chatter: twitchio.Chatter, perms: Permissions) -> bool:
             return chatter.is_turbo is True
         case Permissions.BROADCASTER:
             return chatter.is_broadcaster is True
+
+
+def parse_username(username: str) -> str:
+    return username.replace('@', '')
 
 
 class GuessingGameBot(commands.Bot):
@@ -336,8 +341,8 @@ class GuessingGameBot(commands.Bot):
         self.logger.info('Getting user\'s score from database')
 
         try:
-            user = parse_params(ctx.message.content, 1, is_command=True)[0]
-            user = user.replace('@', '')
+            user, _ = parse_params(ctx.message.content, 1)
+            user = parse_username(user)
         except NotEnoughParamsException:
             user = ctx.author.display_name
 
@@ -354,8 +359,8 @@ class GuessingGameBot(commands.Bot):
         self.logger.info('Getting user\'s tokens from database')
 
         try:
-            user = parse_params(ctx.message.content, 1, is_command=True)[0]
-            user = user.replace('@', '')
+            user, _ = parse_params(ctx.message.content, 1)
+            user = parse_username(user)
         except NotEnoughParamsException:
             user = ctx.author.display_name
 
@@ -365,7 +370,7 @@ class GuessingGameBot(commands.Bot):
 
         await ctx.send(message)
 
-    @commands.command()
+    @commands.command(aliases=['highscore'])
     async def highscores(self, ctx: commands.Context) -> None:
         """Outputs the current highscores."""
 
@@ -419,7 +424,7 @@ class GuessingGameBot(commands.Bot):
 
         await ctx.channel.send(message)
 
-    @commands.command()
+    @commands.command(aliases='category')
     async def hint(self, ctx: commands.Context) -> None:
         """Outputs the current game's category."""
 
@@ -436,7 +441,8 @@ class GuessingGameBot(commands.Bot):
 
         await ctx.channel.send(message)
 
-    @commands.command(aliases=['wordsremaining', 'remaining'])
+    @commands.command(aliases=['wordsremaining', 'remaining',
+                               'remaining_words', 'words'])
     async def words_remaining(self, ctx: commands.Context) -> None:
         """Outputs the number of words remaining."""
 
@@ -463,8 +469,7 @@ class GuessingGameBot(commands.Bot):
             return
 
         try:
-            old_username, new_username, _ = parse_params(
-                ctx.message.content, 2, is_command=True)
+            old_username, new_username, _ = parse_params(ctx.message.content, 2)
         except NotEnoughParamsException:
             self.logger.info('Did not get the new username')
 
@@ -523,12 +528,19 @@ class GuessingGameBot(commands.Bot):
 
         try:
             username, token_param, _ = parse_params(ctx.message.content, 2)
+            username = parse_username(username)
             num_tokens = int(token_param)
-        except (NotEnoughParamsException, ValueError):
+        except NotEnoughParamsException:
             self.logger.info('Not enough params')
 
             await ctx.send('!add_tokens requires a username and a number of '
                            'tokens')
+            return
+        except ValueError:
+            self.logger.info('Param 2 was not a number')
+
+            await ctx.send('!add_tokens [username] [amount] amount must be a '
+                           'number.')
             return
 
         self.logger.info('Broadcaster is adding tokens to user')
@@ -568,6 +580,7 @@ class GuessingGameBot(commands.Bot):
 
         try:
             username, token_param, _ = parse_params(ctx.message.content, 2)
+            username = parse_username(username)
             num_tokens = int(token_param)
         except (NotEnoughParamsException, ValueError):
             self.logger.info('Not enough params')
