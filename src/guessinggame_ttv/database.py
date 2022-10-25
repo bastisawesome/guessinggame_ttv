@@ -447,7 +447,10 @@ class DatabaseManager:
                                'LIMIT 3')
         highest_scores = self._connection.execute(
             highest_score_query).fetchall()
+
         highest_scores = [score[0] for score in highest_scores]
+
+        highest_scores += [0] * (3 - len(highest_scores))
 
         query = ('SELECT username, score FROM users WHERE (score == ? OR score '
                  '== ? OR score == ?) AND score > 0 ORDER BY score DESC LIMIT '
