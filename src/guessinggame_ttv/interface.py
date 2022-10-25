@@ -449,5 +449,6 @@ class Interface:
 
 
 if __name__ == '__main__':
-    with Interface(DatabaseManager(_in_memory=True)) as interface:
+    # TODO: Remove me.
+    with Interface(DatabaseManager(_in_memory=False)) as interface:
         interface.run()
