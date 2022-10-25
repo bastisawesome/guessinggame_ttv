@@ -115,6 +115,16 @@ def check_permissions(chatter: twitchio.Chatter, perms: Permissions) -> bool:
 
 class GuessingGameBot(commands.Bot):
     def __init__(self, settings: Settings):
+        """Twitch bot object that controls the bot's interactions with Twitch.
+
+        Bot object to connect to Twitch, interact with chat, and run the word
+        guessing game.
+
+        Args:
+            settings (Settings):
+                Settings required for the bot to connect to Twitch.
+        """
+
         self.logger = logging.getLogger('guessinggame_ttv')
 
         self.logger.info('Initialising the bot')
@@ -145,6 +155,8 @@ class GuessingGameBot(commands.Bot):
         self.logger.info('Bot shutdown completed')
 
     def teardown(self) -> None:
+        """Shuts down the bot, game, and database manager."""
+
         self.logger.info('Shutting down the game module')
 
         if self.game:
@@ -163,9 +175,20 @@ class GuessingGameBot(commands.Bot):
             self._save()
 
     def _save(self) -> None:
+        # TODO: Fill this in.
         self._saved = True
 
     async def event_message(self, message: twitchio.Message) -> None:
+        """|coro| Handles Twitch message events.
+
+        Scans all messages from Twitch, ignoring messages sent by this bot.
+        Determines if the message is a command or a normal message. Commands are
+        ignored by the game. Non-command messages are processed by the game.
+
+        Args:
+            message (twitchio.Message): Message sent to Twitch.
+        """
+
         if message.echo:
             self.logger.debug('Ignoring bot message')
 
@@ -282,10 +305,22 @@ class GuessingGameBot(commands.Bot):
         return message
 
     async def handle_commands(self, message: twitchio.Message) -> bool:
+        """See base class.
+
+        Returns:
+            bool: If the message is a command.
+        """
+
         context = await self.get_context(message)
         return await self.invoke(context)
 
     async def invoke(self, context: commands.Context) -> bool:
+        """See base class.
+
+        Returns:
+            bool: If the command is valid and can be invoked.
+        """
+
         if not context.prefix or not context.is_valid:
             return False
 
@@ -296,6 +331,8 @@ class GuessingGameBot(commands.Bot):
 
     @commands.command()
     async def score(self, ctx: commands.Context) -> None:
+        """Outputs either the caller's or a specified user's score."""
+
         self.logger.info('Getting user\'s score from database')
 
         try:
@@ -312,6 +349,8 @@ class GuessingGameBot(commands.Bot):
 
     @commands.command()
     async def tokens(self, ctx: commands.Context) -> None:
+        """Outputs either the caller's or a specified user's score."""
+
         self.logger.info('Getting user\'s tokens from database')
 
         try:
@@ -328,6 +367,8 @@ class GuessingGameBot(commands.Bot):
 
     @commands.command()
     async def highscores(self, ctx: commands.Context) -> None:
+        """Outputs the current highscores."""
+
         self.logger.info('Printing the highscores')
 
         highscores = self.databasemanager.get_highscores()
@@ -380,6 +421,8 @@ class GuessingGameBot(commands.Bot):
 
     @commands.command()
     async def hint(self, ctx: commands.Context) -> None:
+        """Outputs the current game's category."""
+
         self.logger.info('Hint was requested, attempting to send a hint')
 
         if not self.game.running:
@@ -395,6 +438,8 @@ class GuessingGameBot(commands.Bot):
 
     @commands.command(aliases=['wordsremaining', 'remaining'])
     async def words_remaining(self, ctx: commands.Context) -> None:
+        """Outputs the number of words remaining."""
+
         self.logger.info('Remaining word count requested')
 
         count = self.databasemanager.get_remaining_word_count()
@@ -405,6 +450,8 @@ class GuessingGameBot(commands.Bot):
 
     @commands.command(aliases=['migrateuser', 'migrate'])
     async def migrate_user(self, ctx: commands.Context) -> None:
+        """Attempts to migrate the stats from one username to another."""
+
         self.logger.info('Checking user permissions for !migrate_user')
 
         user = ctx.author
@@ -436,6 +483,12 @@ class GuessingGameBot(commands.Bot):
 
     @commands.command(aliases=['endround'])
     async def end_round(self, ctx: commands.Context) -> None:
+        """Attempts to manually end the current game round.
+
+        Permissions:
+            Broadcaster
+        """
+
         self.logger.info('Checking user permissions for !end_round')
 
         user = ctx.author
@@ -452,6 +505,12 @@ class GuessingGameBot(commands.Bot):
 
     @commands.command(aliases=['addtokens'])
     async def add_tokens(self, ctx: commands.Context) -> None:
+        """Attempts to add a specified number of tokens to a user.
+
+        Permissions:
+            Broadcaster
+        """
+
         self.logger.info('Check user permissions for !add_tokens')
 
         user = ctx.author
@@ -491,6 +550,12 @@ class GuessingGameBot(commands.Bot):
 
     @commands.command(aliases=['removetokens'])
     async def remove_tokens(self, ctx: commands.Context) -> None:
+        """Attempts to remove a specified number of tokens from a user.
+
+        Permissions:
+            Broadcaster
+        """
+
         self.logger.info('Check user permissions for !remove_tokens')
 
         user = ctx.author
@@ -530,11 +595,15 @@ class GuessingGameBot(commands.Bot):
 
     @commands.command()
     async def help(self, ctx: commands.Context) -> None:
+        """Outputs a link to the bot's command and usage documentation."""
+
         self.logger.warning('Help command has not been implemented')
         return
 
     @commands.command(aliases=['redeemhelp', 'helpredeem', 'help_redeem'])
     async def redeem_help(self, ctx: commands.Context) -> None:
+        """Outputs instructions to see redeem information."""
+
         self.logger.info('User has requests redeems help')
 
         await ctx.send('For information about what redeems are available, '
@@ -542,6 +611,8 @@ class GuessingGameBot(commands.Bot):
 
     @commands.command()
     async def redeem(self, ctx: commands.Context) -> None:
+        """Attempts to execute a redemption."""
+
         self.logger.info('User has requested to redeem')
 
         username = ctx.author.display_name
