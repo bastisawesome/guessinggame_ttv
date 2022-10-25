@@ -1,3 +1,8 @@
+'''
+FIXME: Remove word from database AFTER it has been guessed
+FIXME: Check word boundaries when processing messages
+FIXME: Previous state is being ignored
+'''
 from guessinggame_ttv.database import (
     DatabaseManager, MetaNotFoundException, UserNotFoundException)
 
@@ -212,17 +217,17 @@ class Game:
                 If the word is not in the message, current word and category are
                 None.
         """
-        self.logger.info(f'Processing {username}\'s message')
+        self.logger.debug(f'Processing {username}\'s message')
 
         # Because we remove words from the database after selecting them,
         # the total word count is off by 1. So we add 1 to account for this.
         remaining_words = self._databasemanager.get_remaining_word_count() + 1
 
-        if self._current_word not in msg:
-            self.logger.info('Current word was not in the message')
+        if self._current_word.lower() not in msg.lower():
+            self.logger.debug('Current word was not in the message')
             return ProcessData(False, None, None, remaining_words)
 
-        self.logger.info('Current word was in the message')
+        self.logger.debug('Current word was in the message')
 
         cur_word = self._current_word
         cur_pv = self._current_point_value
