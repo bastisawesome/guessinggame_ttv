@@ -1,6 +1,3 @@
-'''
-FIXME: Previous state is being ignored
-'''
 from guessinggame_ttv.database import (
     DatabaseManager, MetaNotFoundException, UserNotFoundException)
 
@@ -84,9 +81,11 @@ class Game:
         if loaded_data and update_round:
             self.logger.info(
                 'Loaded data, round has changed so recalculating point value')
+
             self.update_point_value()
         else:
             self.logger.info('No previous data to load, setting up new round')
+
             chose_word = self.choose_new_word()
 
             if chose_word:
@@ -109,12 +108,7 @@ class Game:
     def _load_previous_data(self) -> bool:
         self.logger.info('Clearing flag for reloading game state')
 
-        try:
-            self._databasemanager.set_meta('update_round', 'False')
-        except MetaNotFoundException:
-            self.logger.error('update_round was never set, aborting')
-
-            return False
+        self._databasemanager.set_meta('update_round', 'False')
 
         try:
             self.logger.info('Querying the database for saved information')
@@ -221,12 +215,12 @@ class Game:
                 If the word is not in the message, current word and category are
                 None.
         """
+
         self.logger.debug(f'Processing {username}\'s message')
 
         remaining_words = self._databasemanager.get_remaining_word_count()
 
-        if not re.search(r'\b{}\b'.format(self._current_word.lower()),
-                         msg.lower()):
+        if not self._word_in_message(msg):
             self.logger.debug('Current word was not in the message')
 
             return ProcessData(False, None, None, remaining_words)
@@ -234,6 +228,7 @@ class Game:
         self.logger.debug('Current word was in the message')
 
         self.logger.info('Removing word from database')
+
         self._databasemanager.remove_word(self._current_word)
 
         # Offset remaining words by 1 because we have removed a word.
@@ -263,6 +258,13 @@ class Game:
         self.update_point_value()
 
         return ret_data
+
+    def _word_in_message(self, msg: str) -> bool:
+        if not re.search(r'\b{}\b'.format(self._current_word.lower()),
+                         msg.lower()):
+            return False
+
+        return True
 
     def end_round(self) -> list[Tuple[str, int]]:
         """Ends the current round.
