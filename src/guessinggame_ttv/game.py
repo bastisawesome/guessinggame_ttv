@@ -1,6 +1,4 @@
 '''
-FIXME: Remove word from database AFTER it has been guessed
-FIXME: Check word boundaries when processing messages
 FIXME: Previous state is being ignored
 '''
 from guessinggame_ttv.database import (
@@ -10,7 +8,7 @@ from typing import NamedTuple, Tuple
 
 import random
 import logging
-
+import re
 
 ProcessData = NamedTuple('ProcessData',
                          [('success', bool), ('word', str),
@@ -150,9 +148,6 @@ class Game:
         self._current_word = word
         self._current_category = cat
 
-        self.logger.info('Removing word from database')
-        self._databasemanager.remove_word(word)
-
         self.logger.info('Successfully chose a new word and category')
 
         return True
@@ -219,20 +214,24 @@ class Game:
         """
         self.logger.debug(f'Processing {username}\'s message')
 
-        # Because we remove words from the database after selecting them,
-        # the total word count is off by 1. So we add 1 to account for this.
-        remaining_words = self._databasemanager.get_remaining_word_count() + 1
+        remaining_words = self._databasemanager.get_remaining_word_count()
 
-        if self._current_word.lower() not in msg.lower():
+        if not re.search(r'\b{}\b'.format(self._current_word), msg):
             self.logger.debug('Current word was not in the message')
+
             return ProcessData(False, None, None, remaining_words)
 
         self.logger.debug('Current word was in the message')
 
+        self.logger.info('Removing word from database')
+        self._databasemanager.remove_word(self._current_word)
+
+        # Offset remaining words by 1 because we have removed a word.
+        remaining_words -= 1
         cur_word = self._current_word
         cur_pv = self._current_point_value
 
-        ret_data = ProcessData(True, cur_word, cur_pv, remaining_words-1)
+        ret_data = ProcessData(True, cur_word, cur_pv, remaining_words)
 
         try:
             self.logger.info('Updating user information in the database')
@@ -243,7 +242,7 @@ class Game:
 
             self._databasemanager.add_user(username, score=cur_pv)
 
-        if remaining_words - 1 == 0:
+        if remaining_words == 0:
             self.logger.info('No words remaining')
 
             return ret_data

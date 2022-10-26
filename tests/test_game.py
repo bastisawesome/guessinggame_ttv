@@ -1,3 +1,7 @@
+'''
+FIXME: Add tests for words inside other words, should fail
+'''
+
 from guessinggame_ttv.game import Game
 from .conftest import DBManagerMock
 
@@ -93,7 +97,7 @@ def test_update_point_value(gameobj: Game) -> None:
 
 
 def test_process_win_round_continue(gameobj: Game) -> None:
-    message = ' '.join(DBManagerMock().words_as_list())
+    message = f'test message that has {gameobj.word} in it.'
     user = 'testuser'
 
     results = gameobj.process(user, message)
@@ -106,7 +110,7 @@ def test_process_win_round_continue(gameobj: Game) -> None:
 
 def test_process_win_round_end(gameobj: Game) -> None:
     db: DBManagerMock = gameobj._databasemanager
-    db.wordlist = {}
+    db.wordlist = {gameobj._current_category: [gameobj._current_word]}
     message = gameobj._current_word
     user = 'testuser'
 
