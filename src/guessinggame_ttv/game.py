@@ -216,7 +216,8 @@ class Game:
 
         remaining_words = self._databasemanager.get_remaining_word_count()
 
-        if not re.search(r'\b{}\b'.format(self._current_word), msg):
+        if not re.search(r'\b{}\b'.format(self._current_word.lower()),
+                         msg.lower()):
             self.logger.debug('Current word was not in the message')
 
             return ProcessData(False, None, None, remaining_words)
