@@ -107,6 +107,15 @@ class Game:
             self._running = False
 
     def _load_previous_data(self) -> bool:
+        self.logger.info('Clearing flag for reloading game state')
+
+        try:
+            self._databasemanager.set_meta('update_round', 'False')
+        except MetaNotFoundException:
+            self.logger.error('update_round was never set, aborting')
+
+            return False
+
         try:
             self.logger.info('Querying the database for saved information')
 
