@@ -191,6 +191,11 @@ class DBManagerMock(DatabaseManager):
         return hs
 
 
-@ pytest.fixture(scope='function')
+@pytest.fixture(scope='function')
 def gameobj() -> Game:
     return Game(DBManagerMock())
+
+
+@pytest.fixture(scope='function')
+def dbmanmock() -> DBManagerMock:
+    return DBManagerMock()
