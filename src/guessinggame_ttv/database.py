@@ -80,8 +80,7 @@ class DatabaseManager:
             self.logger.info('Getting path to database')
 
             # Find path to database
-            db_path = (pathlib.Path(__file__)
-                       .joinpath('../config/guessinggame_ttv.db').resolve())
+            db_path = (pathlib.Path('./config/guessinggame_ttv.db').resolve())
 
             if db_path.exists():
                 self.logger.info('Database found')
@@ -479,12 +478,12 @@ class DatabaseManager:
         query = ('SELECT name FROM categories LEFT JOIN wordlist '
                  'ON categories.id = wordlist.category_id '
                  'WHERE wordlist.word = ?')
-        res: str = self._connection.execute(query, (word,)).fetchone()[0]
+        res: list[str] = self._connection.execute(query, (word,)).fetchone()
 
         if res:
             self.logger.info('Returning category')
 
-            return res
+            return res[0]
         else:
             self.logger.info('Word not in wordlist, raising exception')
 
