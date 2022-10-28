@@ -176,13 +176,6 @@ class GuessingGameBot(commands.Bot):
 
         self.logger.info('Saving data')
 
-        if not self._saved:
-            self._save()
-
-    def _save(self) -> None:
-        # TODO: Fill this in.
-        self._saved = True
-
     async def event_message(self, message: twitchio.Message) -> None:
         """|coro| Handles Twitch message events.
 
