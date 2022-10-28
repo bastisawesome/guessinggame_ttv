@@ -1,1 +1,3 @@
-# Entry point in the program
+from guessinggame_ttv.main import main
+
+main()
