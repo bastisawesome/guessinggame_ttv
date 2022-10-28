@@ -31,7 +31,7 @@ def dbmanagerfilled(dbmanager: DatabaseManager) -> DatabaseManager:
     conn = dbmanager._connection
 
     # Add two dummy categories
-    cats = [('dummy1',), ('dummy2',)]
+    cats = [('dummy1',), ('dummy2',), ('empty_category',)]
     conn.executemany('INSERT INTO categories (name) VALUES  (?)',
                      cats)
 

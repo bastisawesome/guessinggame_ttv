@@ -10,7 +10,8 @@ from guessinggame_ttv.database import (CategoryNotFoundException,
                                        WordExistsException,
                                        WordNotFoundException,
                                        MetaNotFoundException,
-                                       UserExistsException)
+                                       UserExistsException,
+                                       CategoryNotEmptyException)
 
 
 @pytest.mark.parametrize('tablename,expschema',
@@ -151,6 +152,20 @@ def test_get_category(dbmanagerfilled: DatabaseManager,
 def test_get_category_invalid(dbmanagerfilled: DatabaseManager) -> None:
     with pytest.raises(WordNotFoundException):
         dbmanagerfilled.get_category('invalidword')
+
+
+def test_remove_category(dbmanagerfilled: DatabaseManager,
+                         dbconn: sqlite3.Connection) -> None:
+    dbmanagerfilled.remove_category('empty_category')
+    none_cat = dbconn.execute('SELECT name FROM categories WHERE name = '
+                              '"empty_category"').fetchone()
+
+    assert none_cat is None
+
+
+def test_remove_category_invalid(dbmanagerfilled: DatabaseManager) -> None:
+    with pytest.raises(CategoryNotEmptyException):
+        dbmanagerfilled.remove_category('dummy1')
 
 
 @pytest.mark.parametrize('username,expected', [('MultiDarkSamuses', 5),
@@ -316,6 +331,17 @@ def test_remove_word(dbmanagerfilled: DatabaseManager,
     word_list = [word[0] for word in res]
 
     assert word_list == ['word1', 'word2', 'word4']
+
+
+def test_remove_word_and_category(dbmanagerfilled: DatabaseManager,
+                                  dbconn: sqlite3.Connection) -> None:
+    dbmanagerfilled.remove_word('word1')
+    dbmanagerfilled.remove_word('word2')
+
+    none_category = dbconn.execute('SELECT name FROM categories WHERE name '
+                                   '= "dummy1"').fetchone()
+
+    assert none_category is None
 
 
 def test_remove_word_invalid(dbmanagerfilled: DatabaseManager) -> None:
