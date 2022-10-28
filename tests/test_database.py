@@ -217,7 +217,7 @@ def test_add_tokens_lte_zero(dbmanagerfilled: DatabaseManager,
     tokens = dbconn.execute('SELECT tokens FROM users WHERE username = '
                             '"multidarksamuses"').fetchone()[0]
 
-    assert tokens == 5
+    assert tokens == 0
 
 
 def test_add_tokens_invalid(dbmanagerfilled: DatabaseManager) -> None:

@@ -566,8 +566,8 @@ class DatabaseManager:
     def add_tokens(self, username: str, amount: int) -> None:
         """Adds some number of tokens to a user.
 
-        Increases the amount of tokens the specified user has by a specified
-        amount. Amount is minimum-clamped to 0.
+        Increases or decreases the amount of tokens the specified user has by a
+        specified amount.
 
         Args:
             username (str): Name of user.
@@ -579,16 +579,28 @@ class DatabaseManager:
 
         self.logger.info(f'Adding tokens to {username}')
 
-        if amount <= 0:
-            self.logger.info('Amount is a non-positive or zero amount, '
-                             'nothing to do')
-            return
+        # Ensure amount is an integer value
+        amount = int(amount)
+
+        if amount < 0:
+            # Verify the amount will not go below 0
+            num_tokens = self.get_tokens(username)
+
+            if num_tokens + amount <= 0:
+                self.logger.info(
+                    'Amount would put user under 0, setting user\'s tokens to 0'
+                )
+
+                self._connection.execute('UPDATE users SET tokens = 0 WHERE '
+                                         'username = ?', (username,))
+                return
 
         query = 'UPDATE users SET tokens = tokens + ? WHERE username = ?'
         cur = self._connection.execute(query, (amount, username))
 
         if cur.rowcount == 0:
             self.logger.info('User not found, raising exception.')
+
             raise UserNotFoundException()
 
     def remove_tokens(self, username: str, amount: int) -> None:
@@ -607,25 +619,7 @@ class DatabaseManager:
 
         self.logger.info(f'Removing tokens from {username}')
 
-        res = self._connection.execute('SELECT tokens FROM users WHERE '
-                                       'username = ?', (username,)).fetchone()
-
-        if not res:
-            self.logger.info('User not found, raising exception')
-
-            raise UserNotFoundException()
-
-        num_tokens: int = res[0]
-
-        if num_tokens - amount <= 0:
-            self.logger.info('Amount would put user under 0, setting user\'s '
-                             'tokens to 0')
-
-            self._connection.execute('UPDATE users SET tokens = 0 WHERE '
-                                     'username = ?', (username,))
-        else:
-            query = 'UPDATE users SET tokens = tokens - ? WHERE username = ?'
-            self._connection.execute(query, (amount, username))
+        self.add_tokens(username, -amount)
 
     def add_redeem(self, name: str, cost: int) -> None:
         """Adds redeem to the database.
