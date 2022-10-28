@@ -42,6 +42,10 @@ class CategoryExistsException(DatabaseException):
     pass
 
 
+class CategoryNotEmptyException(DatabaseException):
+    pass
+
+
 class MetaNotFoundException(DatabaseException):
     pass
 
@@ -489,6 +493,18 @@ class DatabaseManager:
 
             raise WordNotFoundException()
 
+    def remove_category(self, category: str) -> None:
+        self.logger.info(f'Removing {category} from database')
+
+        try:
+            self._connection.execute('DELETE FROM categories WHERE name = ?',
+                                     (category,))
+        except sqlite3.IntegrityError:
+            self.logger.error(f'{category} could not be deleted, still used by '
+                              'the wordlist')
+
+            raise CategoryNotEmptyException()
+
     def get_tokens(self, username: str) -> int:
         """Retrieves the number of tokens from the specified user.
 
@@ -738,6 +754,9 @@ class DatabaseManager:
     def remove_word(self, word: str) -> None:
         """Removes a word from the word list.
 
+        Attempts to remove a word from the database. If it is the last word
+        assigned to the category, also removes the category.
+
         Args:
             word (str): Word to be removed.
 
@@ -747,6 +766,8 @@ class DatabaseManager:
 
         self.logger.info(f'Removing {word} from database')
 
+        category = self.get_category(word)
+
         query = 'DELETE FROM wordlist WHERE word = ?'
         cur = self._connection.execute(query, (word,))
 
@@ -754,6 +775,18 @@ class DatabaseManager:
             self.logger.info('Word not found in database, raising exception')
 
             raise WordNotFoundException()
+
+        self.logger.info(f'Checking remaining words in the category {category}')
+
+        num_words = self._connection.execute(
+            'SELECT COUNT(word) FROM wordlist LEFT JOIN categories ON '
+            'category_id = categories.id WHERE categories.name = ?',
+            (category,)).fetchone()[0]
+
+        if num_words == 0:
+            self.logger.info('Clearing category from database')
+
+            self.remove_category(category)
 
     def get_words(self) -> list[Tuple[str, str]]:
         """Queries the database for the list of words and their categories."""
