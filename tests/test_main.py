@@ -22,7 +22,7 @@ prefix = !
     return out_path
 
 
-def test_read_settings(config_file: str) -> None:
+def test_read_settings(config_file: pathlib.Path) -> None:
     settings = read_settings(config_file)
 
     assert settings.channel == 'test_channel'
