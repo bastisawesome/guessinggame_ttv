@@ -119,7 +119,7 @@ def wordlist_from_file(wordlist_path: pathlib.Path) -> None:
 
     cfg_parser.read(wordlist_path)
 
-    if not cfg_parser.defaults() or not cfg_parser.sections():
+    if cfg_parser.defaults() or not cfg_parser.sections():
         raise InvalidWordlistFile()
 
     wordlist: dict[str, list[str]] = {}
@@ -234,6 +234,9 @@ def main() -> None:
         print(f'--{arg1} is incompatible with --{arg2}')
 
         sys.exit(1)
+
+    if not pathlib.Path('./config').exists():
+        pathlib.Path('./config').mkdir()
 
     verbosity = convert_verbosity(args.verbose)
     daemonise = args.daemonise or not args.interactive
