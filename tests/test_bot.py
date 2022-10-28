@@ -4,37 +4,23 @@ from guessinggame_ttv.bot import (
 import pytest
 
 
-def test_parse_params_two_params() -> None:
-    msg = 'param1 param2 the rest of the message'
+@pytest.mark.parametrize('message, num_params, params',
+                         [['param1 param2 the rest of the message',
+                          2, ['param1', 'param2', 'the rest of the message']],
+                          ['param1 param2 param3 param4 the rest',
+                          4, ['param1', 'param2', 'param3', 'param4',
+                              'the rest']],
+                          ['no parsing here', 0, ['!com no parsing here']]])
+def test_parse_params(message: str, num_params: int,
+                      params: list[str]) -> None:
+    full_message = f'!com {message}'
 
-    params = parse_params(msg, 2)
+    ret_params = parse_params(full_message, num_params)
 
-    assert len(params) == 3
-    assert params[0] == 'param1'
-    assert params[1] == 'param2'
-    assert params[2] == 'the rest of the message'
+    assert len(ret_params) == num_params+1
 
-
-def test_parse_params_four_params() -> None:
-    msg = 'param1 param2 param3 param4 the rest of the message'
-
-    params = parse_params(msg, 4)
-
-    assert len(params) == 5
-    assert params[0] == 'param1'
-    assert params[1] == 'param2'
-    assert params[2] == 'param3'
-    assert params[3] == 'param4'
-    assert params[4] == 'the rest of the message'
-
-
-def test_parse_params_zero() -> None:
-    msg = 'no parsing here'
-
-    params = parse_params(msg, 0)
-
-    assert len(params) == 1
-    assert params[0] == 'no parsing here'
+    for index, param in enumerate(ret_params):
+        assert param == params[index]
 
 
 def test_parse_params_none() -> None:
