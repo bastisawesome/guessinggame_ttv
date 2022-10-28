@@ -6,5 +6,4 @@ class Settings:
     channel: str
     token: str
     client_secret: str
-    prefix: str = '!'
-    logging_level: int = 2
+    prefix: str
