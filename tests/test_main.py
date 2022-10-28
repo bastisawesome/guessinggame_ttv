@@ -1,10 +1,9 @@
 from guessinggame_ttv.main import (
-    read_settings, configure_logging, InvalidConfigFile,
+    read_settings,
     ConfigNotExistsException)
 
 import pytest
 import pathlib
-import logging
 
 
 @pytest.fixture()
