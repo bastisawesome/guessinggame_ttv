@@ -1,0 +1,15 @@
+# Template wordlist file. This file can be safely copied and filled in manually.
+
+# Each category is given as a section header (text between `[]`)
+# Categories and words cannot contain any spaces.
+[example_category]
+
+# Words are taken from the keys inside each category, with an optional `=` or
+# `:`
+kitten
+waffle
+
+# If a word contains a value it will simply be ignored by the bot.
+zombie = ignored text
+
+# Wordlist files are not deleted after being parsed.
