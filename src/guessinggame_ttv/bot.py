@@ -662,23 +662,3 @@ class GuessingGameBot(commands.Bot):
 
         await ctx.send(f'REDEEM {redeem_name.upper()}')
         await ctx.send(f'{username} has {remaining_tokens} tokens left.')
-
-
-if __name__ == "__main__":
-    # TODO: Remove this please.
-    logger = logging.getLogger('guessinggame_ttv')
-    logger.setLevel(logging.DEBUG)
-
-    ch = logging.StreamHandler()
-    ch.setLevel(logging.DEBUG)
-
-    fmt = logging.Formatter(
-        '%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-    ch.setFormatter(fmt)
-
-    logger.addHandler(ch)
-
-    s = Settings('multidarksamuses', 'b8448qzmk31cqhwiskrdzxt39n1z7a',
-                 'gp762nuuoqcoxypju8c569th9wz7q5')
-    with GuessingGameBot(s) as bot:
-        bot.run()

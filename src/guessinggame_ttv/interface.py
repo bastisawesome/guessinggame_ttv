@@ -446,9 +446,3 @@ class Interface:
         """Starts displaying and processing the interface."""
 
         self.main_menu.show()
-
-
-if __name__ == '__main__':
-    # TODO: Remove me.
-    with Interface(DatabaseManager(_in_memory=False)) as interface:
-        interface.run()
