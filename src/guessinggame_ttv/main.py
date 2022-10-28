@@ -138,7 +138,7 @@ def parse_args(args: list[str] | None = None) -> argparse.Namespace:
         prog='GuessingGame_TTV',
         description=('Controls a Twitch bot that plays a word guessing game.\n '
                      'License: New BSD 3-Clause'),
-        epilog=('(c) 2022 BastIsAwesome/Giles Johnson. For more information '
+        epilog=('(c) 2022 Giles Johnson. For more information '
                 'see https://github.com/bastisawesome/guessinggame_ttv')
     )
 
