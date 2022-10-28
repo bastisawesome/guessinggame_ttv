@@ -119,6 +119,7 @@ The CLI interface allows you to configure the wordlist and redeems using simple
 menus.
 
 # Wordlist File
+
 The wordlist file format is one of the more complex features of GuessingGame_TTV.
 The format is based on INI configuration files, but without any values. In
 fact, you can fill in values for each key and they will simply be ignored.
@@ -131,3 +132,13 @@ IMPORTANT: This will wipe the existing wordlist and the option should only be
 used when there is no currently-running round, as it will not end the round.
 
 An example wordlist file is included in the `templates/` directory.
+
+# RestreamIO
+
+GuessingGame_TTV has support for Restream messages. Viewers on YouTube and other
+platforms can participate just the same as Twitch users.
+
+Users on platforms, such as YouTube, that allow spaces in usernames are stored
+with underscores in place of spaces. To view their scores or tokens the spaces
+must be replaced with underscores. Their usernames in messages will also reflect
+this.
