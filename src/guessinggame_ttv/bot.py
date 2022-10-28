@@ -603,8 +603,10 @@ class GuessingGameBot(commands.Bot):
     async def help(self, ctx: commands.Context) -> None:
         """Outputs a link to the bot's command and usage documentation."""
 
-        self.logger.warning('Help command has not been implemented')
-        return
+        self.logger.info('Printing the help message')
+
+        ctx.send('For help, see the bastisawesome/guessinggame_ttv wiki on '
+                 'GitHub.')
 
     @commands.command(aliases=['redeemhelp', 'helpredeem', 'help_redeem'])
     async def redeem_help(self, ctx: commands.Context) -> None:
