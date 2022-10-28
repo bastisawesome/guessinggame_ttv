@@ -42,7 +42,7 @@ class Interface:
                 Allows the interface to communicate with the Sqlite3 database.
         """
 
-        self.logger = logging.getLogger('guessinggame_ttv')
+        self.logger = logging.getLogger('guessinggame_ttv.interface')
 
         self.logger.info('Initialising interface')
 

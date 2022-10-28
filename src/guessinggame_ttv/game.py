@@ -20,7 +20,7 @@ class Game:
             databasemanager (DatabaseManager): Database manager.
         """
 
-        self.logger = logging.getLogger('guessinggame_ttv')
+        self.logger = logging.getLogger('guessinggame_ttv.game')
 
         self.logger.info('Initialising the game object')
 

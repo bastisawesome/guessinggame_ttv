@@ -130,7 +130,7 @@ class GuessingGameBot(commands.Bot):
                 Settings required for the bot to connect to Twitch.
         """
 
-        self.logger = logging.getLogger('guessinggame_ttv')
+        self.logger = logging.getLogger('guessinggame_ttv.bot')
 
         self.logger.info('Initialising the bot')
 

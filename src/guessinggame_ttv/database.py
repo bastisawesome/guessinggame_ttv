@@ -60,7 +60,7 @@ class DatabaseManager:
             _in_memory (bool): Tells the manager to use an in-memory database,
                 **only use for testing**.
         '''
-        self.logger = logging.getLogger('guessinggame_ttv')
+        self.logger = logging.getLogger('guessinggame_ttv.databasemanager')
         self.logger.info('Initialising DatabaseManager')
         self._init_database(_in_memory)
 
