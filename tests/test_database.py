@@ -9,7 +9,8 @@ from guessinggame_ttv.database import (CategoryNotFoundException,
                                        UserNotFoundException,
                                        WordExistsException,
                                        WordNotFoundException,
-                                       MetaNotFoundException)
+                                       MetaNotFoundException,
+                                       UserExistsException)
 
 
 @pytest.mark.parametrize('tablename,expschema',
@@ -147,6 +148,11 @@ def test_get_category(dbmanagerfilled: DatabaseManager,
     assert category == expected
 
 
+def test_get_category_invalid(dbmanagerfilled: DatabaseManager) -> None:
+    with pytest.raises(WordNotFoundException):
+        dbmanagerfilled.get_category('invalidword')
+
+
 @pytest.mark.parametrize('username,expected', [('MultiDarkSamuses', 5),
                                                ('DummyUser', 1),
                                                ('InvalidUser', 0)])
@@ -188,6 +194,15 @@ def test_add_tokens(dbmanagerfilled: DatabaseManager,
                             '"MultiDarkSamuses"').fetchone()[0]
 
     assert tokens == 9
+
+
+def test_add_tokens_lte_zero(dbmanagerfilled: DatabaseManager,
+                             dbconn: sqlite3.Connection) -> None:
+    dbmanagerfilled.add_tokens('MultiDarkSamuses', -5)
+    tokens = dbconn.execute('SELECT tokens FROM users WHERE username = '
+                            '"multidarksamuses"').fetchone()[0]
+
+    assert tokens == 5
 
 
 def test_add_tokens_invalid(dbmanagerfilled: DatabaseManager) -> None:
@@ -465,3 +480,33 @@ def test_get_redeem_cost(dbmanagerfilled: DatabaseManager, name: str,
 def test_get_redeem_cost_invalid(dbmanagerfilled: DatabaseManager) -> None:
     with pytest.raises(RedeemNotFoundException):
         dbmanagerfilled.get_redeem_cost('InvalidRedeem')
+
+
+def test_add_user(dbmanagerfilled: DatabaseManager,
+                  dbconn: sqlite3.Connection) -> None:
+    dbmanagerfilled.add_user('new_user')
+    score, tokens = dbconn.execute('SELECT score, tokens FROM users WHERE '
+                                   'username = "new_user"').fetchone()
+
+    assert int(score) == 0
+    assert int(tokens) == 0
+
+
+@pytest.mark.parametrize('exp_score, exp_tokens',
+                         [[5, 0],
+                          [0, 7],
+                          [8, 4]])
+def test_add_user_prefilled(dbmanagerfilled: DatabaseManager,
+                            dbconn: sqlite3.Connection,
+                            exp_score: int, exp_tokens: int) -> None:
+    dbmanagerfilled.add_user('new_user', exp_score, exp_tokens)
+    score, tokens = dbconn.execute('SELECT score, tokens FROM users WHERE '
+                                   'username = "new_user"').fetchone()
+
+    assert int(score) == exp_score
+    assert int(tokens) == exp_tokens
+
+
+def test_add_user_duplicate(dbmanagerfilled: DatabaseManager) -> None:
+    with pytest.raises(UserExistsException):
+        dbmanagerfilled.add_user('multidarksamuses')
