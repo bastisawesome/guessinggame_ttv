@@ -48,15 +48,21 @@ These steps are the same on all platforms, though the commands may vary slightly
 
 1. Use Git to clone GuessingGame_TTV, or use the download button on GitHub.
 
-```bash $ git clone https://github.com/bastisawesome/guessinggame_ttv.git```
+```bash
+$ git clone https://github.com/bastisawesome/guessinggame_ttv.git
+```
 
 2. Install Pipenv with Pip or from your package manager.
 
-`$ pip3 install --user pipenv`
+```bash
+$ pip3 install --user pipenv
+```
 
 3. Install the runtime dependencies.
 
-`$ pipenv install`
+```bash
+$ pipenv install
+```
 
 ## Execution
 
@@ -65,7 +71,7 @@ GuessingGame_TTV can be run in one of two ways:
 1. Navigating to the location of the GuessingGame_TTV source directory,
 activating Pipenv's shell, then running Python
 
-```sh
+```bash
 $ cd ~/guessinggame_ttv
 $ pipenv shell
 $ python src/guessinggame_ttv/main.py
@@ -73,7 +79,9 @@ $ python src/guessinggame_ttv/main.py
 
 2. Or running directly with Pipenv
 
-`$ pipenv run guessinggame_ttv/src/guessinggame_ttv/main.py`
+```bash
+$ pipenv run guessinggame_ttv/src/guessinggame_ttv/main.py
+```
 
 There are plans to add a deployment system and make it easier to run the bot
 (see #6 and #10)
