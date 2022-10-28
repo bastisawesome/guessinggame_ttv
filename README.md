@@ -48,7 +48,7 @@ These steps are the same on all platforms, though the commands may vary slightly
 
 1. Use Git to clone GuessingGame_TTV, or use the download button on GitHub.
 
-`$ git clone https://github.com/bastisawesome/guessinggame_ttv.git`
+```bash $ git clone https://github.com/bastisawesome/guessinggame_ttv.git```
 
 2. Install Pipenv with Pip or from your package manager.
 
