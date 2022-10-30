@@ -14,6 +14,7 @@ mypy = "*"
 pytest = "*"
 pytest-cov = "*"
 types-console-menu = "*"
+pyinstaller = "*"
 
 [requires]
 python_version = "3.10"
