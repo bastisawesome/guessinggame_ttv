@@ -131,6 +131,7 @@ def wordlist_from_file(wordlist_path: pathlib.Path) -> None:
 
     dbman = DatabaseManager()
     dbman.set_wordlist(wordlist)
+    dbman.reset_round()
 
 
 def parse_args(args: list[str] | None = None) -> argparse.Namespace:

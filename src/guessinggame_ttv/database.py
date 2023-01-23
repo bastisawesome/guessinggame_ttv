@@ -1016,3 +1016,11 @@ class DatabaseManager:
             self.logger.info('User already exists, raising exception')
 
             raise UserExistsException()
+
+    def reset_round(self) -> None:
+        """Marks round as updated and not ended."""
+
+        self.logger.info('Resetting the round status.')
+
+        self.set_meta('update_round', str(True))
+        self.set_meta('round_end', str(True))
