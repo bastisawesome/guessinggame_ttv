@@ -11,7 +11,8 @@ from guessinggame_ttv.database import (CategoryNotFoundException,
                                        WordNotFoundException,
                                        MetaNotFoundException,
                                        UserExistsException,
-                                       CategoryNotEmptyException)
+                                       CategoryNotEmptyException,
+                                       sqlite_transaction)
 
 
 @pytest.mark.parametrize('tablename,expschema',
@@ -549,3 +550,44 @@ def test_reset_round(dbmanager: DatabaseManager,
 
     assert round_end == 'False'
     assert update_round == 'True'
+
+
+# SQLite transaction tests
+def test_sqlite_transaction_success(dbconn: sqlite3.Connection) -> None:
+    with sqlite_transaction(dbconn) as cur:
+        cur.execute(
+            'INSERT INTO meta (name, data) VALUES ("test_meta", "test_value")')
+
+    name, value = dbconn.execute(
+        'SELECT name, data FROM meta WHERE name = "test_meta"').fetchone()
+
+    assert name == "test_meta"
+    assert value == "test_value"
+
+
+def test_sqlite_transaction_multiple_transactions(
+        dbconn: sqlite3.Connection) -> None:
+    query = 'INSERT INTO meta (name, data) VALUES (?,?)'
+    with sqlite_transaction(dbconn) as cur:
+        cur.execute(query, ['test_meta', 'test_value'])
+        cur.execute(query, ['real_meta', 'real_value'])
+
+    test, real = dbconn.execute('SELECT name, data FROM meta').fetchall()
+    assert test[0] == 'test_meta'
+    assert test[1] == 'test_value'
+    assert real[0] == 'real_meta'
+    assert real[1] == 'real_value'
+
+
+def test_sqlite_transaction_error(dbconn: sqlite3.Connection) -> None:
+    with pytest.raises(sqlite3.IntegrityError):
+        with sqlite_transaction(dbconn) as cur:
+            cur.execute('INSERT INTO meta (name, data) VALUES (?, ?)',
+                        ['test_meta', 'test_value'])
+            # This statement should cause a rollback
+            cur.execute('INSERT INTO meta (name, data) VALUES (?, ?)',
+                        ['test_meta', 'value_not_important'])
+
+    results = dbconn.execute('SELECT name FROM meta').fetchone()
+
+    assert results is None
