@@ -389,6 +389,8 @@ class DatabaseManager:
 
             self._connection.execute('DROP TABLE meta_old')
 
+        self.set_meta('schema_version', str(self.schema_version))
+
         self.logger.info('Finished creating `meta` table')
 
     def teardown(self) -> None:
