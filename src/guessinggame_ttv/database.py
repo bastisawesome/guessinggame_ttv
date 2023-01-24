@@ -974,7 +974,6 @@ class DatabaseManager:
                 # cache the category IDs, instead of needing multiple SELECT
                 # queries.
                 for category in word_list.keys():
-                    print(category)
                     cur.execute(query, (category,))
                     cat_ids[category] = cur.lastrowid
 
