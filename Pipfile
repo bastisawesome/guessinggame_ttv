@@ -15,6 +15,7 @@ pytest = "*"
 pytest-cov = "*"
 types-console-menu = "*"
 pyinstaller = "*"
+guessinggame-ttv = {editable = true, path = "."}
 
 [requires]
 python_version = "3.10"
