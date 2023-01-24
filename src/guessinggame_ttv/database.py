@@ -1023,4 +1023,4 @@ class DatabaseManager:
         self.logger.info('Resetting the round status.')
 
         self.set_meta('update_round', str(True))
-        self.set_meta('round_end', str(True))
+        self.set_meta('round_end', str(False))
