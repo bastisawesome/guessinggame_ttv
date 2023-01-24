@@ -536,3 +536,16 @@ def test_add_user_prefilled(dbmanagerfilled: DatabaseManager,
 def test_add_user_duplicate(dbmanagerfilled: DatabaseManager) -> None:
     with pytest.raises(UserExistsException):
         dbmanagerfilled.add_user('multidarksamuses')
+
+
+def test_reset_round(dbmanager: DatabaseManager,
+                     dbconn: sqlite3.Connection) -> None:
+    dbmanager.reset_round()
+
+    round_end, = dbconn.execute(
+        'SELECT data FROM meta WHERE name = "round_end"').fetchone()
+    update_round, = dbconn.execute(
+        'SELECT data FROM meta WHERE name = "update_round"').fetchone()
+
+    assert round_end == 'False'
+    assert update_round == 'True'
