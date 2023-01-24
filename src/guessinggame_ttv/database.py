@@ -1,9 +1,44 @@
+from contextlib import contextmanager
 from packaging import version
-from typing import Tuple
+from typing import Tuple, Generator
 
 import sqlite3
 import logging
 import pathlib
+
+
+@contextmanager
+def sqlite_transaction(db: sqlite3.Connection) -> Generator[sqlite3.Cursor,
+                                                            None, None]:
+    """Creates a database cursor object protected by an explicit transaction.
+
+    Begins a transaction and yields a SQLite3 `Cursor` object constrained to
+    that transaction. In the event of an error, causes a rollback on the
+    database. If there are no errors, commits all transactions and closes the
+    `Cursor`.
+
+    Args:
+        db (sqlite3.Connection): Database connection to protect.
+
+    Raises:
+        err: Any `sqlite3` exceptions that were raised.
+
+    Yields:
+        Generator[sqlite3.Cursor, None, None]:
+            Cursor object protected by transaction.
+    """
+
+    db.execute('BEGIN TRANSACTION')
+    cur = db.cursor()
+    try:
+        yield cur
+    except sqlite3.Error as err:
+        db.rollback()
+        raise err
+    else:
+        db.commit()
+    finally:
+        cur.close()
 
 
 class DatabaseException(Exception):
@@ -77,7 +112,8 @@ class DatabaseManager:
             conn = sqlite3.connect('file:testdb?mode=memory&cache=shared',
                                    uri=True,
                                    detect_types=sqlite3.PARSE_DECLTYPES,
-                                   check_same_thread=False)
+                                   check_same_thread=False,
+                                   isolation_level=None)
 
             self.logger.info('Connected to in-memory database')
         else:
@@ -95,7 +131,8 @@ class DatabaseManager:
 
             conn = sqlite3.connect(db_path,
                                    detect_types=sqlite3.PARSE_DECLTYPES,
-                                   check_same_thread=False)
+                                   check_same_thread=False,
+                                   isolation_level=None)
 
             self.logger.info('Created connection to database on disk')
 
@@ -393,8 +430,9 @@ class DatabaseManager:
         self.logger.info(f'Getting score for player {username}')
 
         query = 'SELECT score FROM users WHERE username = ?'
-        res: list[int] = (self._connection.execute(query, (username.lower(),))
-                          .fetchone())
+        with sqlite_transaction(self._connection) as cur:
+            res: list[int] = (cur.execute(
+                query, (username.lower(),)).fetchone())
         if res:
             self.logger.info('User found, returning score')
 
@@ -410,7 +448,8 @@ class DatabaseManager:
         self.logger.info('Resetting scores for all users')
 
         query = 'UPDATE users SET score = 0'
-        self._connection.execute(query)
+        with sqlite_transaction(self._connection) as cur:
+            cur.execute(query)
 
     def add_score(self, username: str, amount: int) -> None:
         """Adds the specific amount to the user's score by username.
@@ -427,8 +466,10 @@ class DatabaseManager:
         self.logger.info(f'Adding to {username}\'s score')
 
         query = 'UPDATE users SET score = score + ? WHERE username = ?'
-        cur = self._connection.execute(query, (amount, username))
-        if cur.rowcount == 0:
+        with sqlite_transaction(self._connection) as cur:
+            res = cur.execute(query, (amount, username))
+
+        if res.rowcount == 0:
             self.logger.info('User not found, raising exception')
 
             raise UserNotFoundException()
@@ -448,8 +489,9 @@ class DatabaseManager:
 
         highest_score_query = ('SELECT score FROM users ORDER BY score DESC '
                                'LIMIT 3')
-        highest_scores = self._connection.execute(
-            highest_score_query).fetchall()
+        with sqlite_transaction(self._connection) as cur:
+            highest_scores = cur.execute(
+                highest_score_query).fetchall()
 
         highest_scores = [score[0] for score in highest_scores]
 
@@ -458,8 +500,9 @@ class DatabaseManager:
         query = ('SELECT username, score FROM users WHERE (score == ? OR score '
                  '== ? OR score == ?) AND score > 0 ORDER BY score DESC LIMIT '
                  '6')
-        res: list[Tuple[str, int]] = self._connection.execute(
-            query, highest_scores).fetchall()
+        with sqlite_transaction(self._connection) as cur:
+            res: list[Tuple[str, int]] = cur.execute(
+                query, highest_scores).fetchall()
 
         return res
 
@@ -482,7 +525,8 @@ class DatabaseManager:
         query = ('SELECT name FROM categories LEFT JOIN wordlist '
                  'ON categories.id = wordlist.category_id '
                  'WHERE wordlist.word = ?')
-        res: list[str] = self._connection.execute(query, (word,)).fetchone()
+        with sqlite_transaction(self._connection) as cur:
+            res: list[str] = cur.execute(query, (word,)).fetchone()
 
         if res:
             self.logger.info('Returning category')
@@ -497,8 +541,9 @@ class DatabaseManager:
         self.logger.info(f'Removing {category} from database')
 
         try:
-            self._connection.execute('DELETE FROM categories WHERE name = ?',
-                                     (category,))
+            with sqlite_transaction(self._connection) as cur:
+                cur.execute(
+                    'DELETE FROM categories WHERE name = ?', (category,))
         except sqlite3.IntegrityError:
             self.logger.error(f'{category} could not be deleted, still used by '
                               'the wordlist')
@@ -518,7 +563,8 @@ class DatabaseManager:
         self.logger.info(f'Getting tokens for {username}')
 
         query = 'SELECT tokens FROM users WHERE username = ?'
-        res: list[int] = self._connection.execute(query, (username,)).fetchone()
+        with sqlite_transaction(self._connection) as cur:
+            res: list[int] = cur.execute(query, (username,)).fetchone()
 
         if res:
             self.logger.info('Username found, returning tokens')
@@ -552,9 +598,10 @@ class DatabaseManager:
         amount = amount if amount > 0 else 0
 
         query = 'UPDATE users SET tokens = ? WHERE username = ?'
-        cur = self._connection.execute(query, (amount, username))
+        with sqlite_transaction(self._connection) as cur:
+            res = cur.execute(query, (amount, username))
 
-        if cur.rowcount == 0:
+        if res.rowcount == 0:
             self.logger.info('User not found, raising exception')
 
             raise UserNotFoundException()
@@ -591,14 +638,16 @@ class DatabaseManager:
                     'Amount would put user under 0, setting user\'s tokens to 0'
                 )
 
-                self._connection.execute('UPDATE users SET tokens = 0 WHERE '
-                                         'username = ?', (username,))
+                with sqlite_transaction(self._connection) as cur:
+                    cur.execute('UPDATE users SET tokens = 0 WHERE '
+                                'username = ?', (username,))
                 return
 
         query = 'UPDATE users SET tokens = tokens + ? WHERE username = ?'
-        cur = self._connection.execute(query, (amount, username))
+        with sqlite_transaction(self._connection) as cur:
+            res = cur.execute(query, (amount, username))
 
-        if cur.rowcount == 0:
+        if res.rowcount == 0:
             self.logger.info('User not found, raising exception.')
 
             raise UserNotFoundException()
@@ -637,7 +686,8 @@ class DatabaseManager:
         query = 'INSERT INTO redeems(name, cost) VALUES (?,?)'
 
         try:
-            self._connection.execute(query, (name, cost))
+            with sqlite_transaction(self._connection) as cur:
+                cur.execute(query, (name, cost))
         except sqlite3.IntegrityError:
             self.logger.info('Redeem name already in use, raising exception')
 
@@ -656,9 +706,10 @@ class DatabaseManager:
         self.logger.info(f'Removing {name} redeem from the database')
 
         query = 'DELETE FROM redeems WHERE name = ?'
-        cur = self._connection.execute(query, (name,))
+        with sqlite_transaction(self._connection) as cur:
+            res = cur.execute(query, (name,))
 
-        if cur.rowcount == 0:
+        if res.rowcount == 0:
             self.logger.info('Redeem not in database, raising exception')
 
             raise RedeemNotFoundException()
@@ -678,9 +729,10 @@ class DatabaseManager:
         self.logger.info(f'Modifying redeem {name}')
 
         query = 'UPDATE redeems SET name = ?, cost = ? WHERE name = ?'
-        cur = self._connection.execute(query, (new_name, new_cost, name))
+        with sqlite_transaction(self._connection) as cur:
+            res = cur.execute(query, (new_name, new_cost, name))
 
-        if cur.rowcount == 0:
+        if res.rowcount == 0:
             self.logger.info('Redeem not in database, raising exception')
 
             raise RedeemNotFoundException()
@@ -711,29 +763,34 @@ class DatabaseManager:
 
         self.logger.info('Getting old user data')
 
-        cur = self._connection.execute(get_old_data_query, (old_username,))
-
-        old_data = cur.fetchone()
+        with sqlite_transaction(self._connection) as cur:
+            old_data = cur.execute(
+                get_old_data_query, (old_username,)).fetchone()
 
         if not old_data:
             self.logger.info('Previous user not found, raising exception')
 
             raise UserNotFoundException(old_username)
 
-        if not self._connection.execute('SELECT * FROM users WHERE username = '
-                                        '?', (new_username,)).fetchone():
+        with sqlite_transaction(self._connection) as cur:
+            status = cur.execute('SELECT * FROM users WHERE username = '
+                                 '?', (new_username,)).fetchone()
+
+        if not status:
             self.logger.info('New user not found, raising exception')
 
             raise UserNotFoundException(new_username)
 
         self.logger.info('Removing old username from the database')
 
-        self._connection.execute(del_user_query, (old_username,))
+        with sqlite_transaction(self._connection) as cur:
+            cur.execute(del_user_query, (old_username,))
 
         self.logger.info('Migrating data to new username')
 
-        self._connection.execute(upd_user_query, (old_data[0], old_data[1],
-                                                  new_username))
+        with sqlite_transaction(self._connection) as cur:
+            cur.execute(upd_user_query, (old_data[0], old_data[1],
+                                         new_username))
 
     def get_remaining_word_count(self) -> int:
         """Retrieves the number of words remaining."""
@@ -741,7 +798,8 @@ class DatabaseManager:
         self.logger.info('Getting the number of remaining words.')
 
         query = 'SELECT COUNT(word) FROM wordlist'
-        num_words: int = self._connection.execute(query).fetchone()[0]
+        with sqlite_transaction(self._connection) as cur:
+            num_words: int = cur.execute(query).fetchone()[0]
 
         return num_words
 
@@ -763,19 +821,21 @@ class DatabaseManager:
         category = self.get_category(word)
 
         query = 'DELETE FROM wordlist WHERE word = ?'
-        cur = self._connection.execute(query, (word,))
+        with sqlite_transaction(self._connection) as cur:
+            result = cur.execute(query, (word,))
 
-        if cur.rowcount == 0:
+        if result.rowcount == 0:
             self.logger.info('Word not found in database, raising exception')
 
             raise WordNotFoundException()
 
         self.logger.info(f'Checking remaining words in the category {category}')
 
-        num_words = self._connection.execute(
-            'SELECT COUNT(word) FROM wordlist LEFT JOIN categories ON '
-            'category_id = categories.id WHERE categories.name = ?',
-            (category,)).fetchone()[0]
+        with sqlite_transaction(self._connection) as cur:
+            num_words = cur.execute(
+                'SELECT COUNT(word) FROM wordlist LEFT JOIN categories ON '
+                'category_id = categories.id WHERE categories.name = ?',
+                (category,)).fetchone()[0]
 
         if num_words == 0:
             self.logger.info('Clearing category from database')
@@ -789,8 +849,9 @@ class DatabaseManager:
 
         query = ('SELECT wl.word, c.name FROM wordlist AS wl LEFT JOIN '
                  'categories AS c WHERE c.id = wl.category_id')
-        wordlist: list[Tuple[str, str]] = (self._connection.execute(query)
-                                           .fetchall())
+        with sqlite_transaction(self._connection) as cur:
+            wordlist: list[Tuple[str, str]] = (cur.execute(query)
+                                               .fetchall())
 
         return wordlist
 
@@ -811,7 +872,8 @@ class DatabaseManager:
         cat_query = 'SELECT id FROM categories WHERE name = ?'
         word_query = 'INSERT INTO wordlist(word, category_id) VALUES (?,?)'
 
-        cat_id = self._connection.execute(cat_query, (category,)).fetchone()
+        with sqlite_transaction(self._connection) as cur:
+            cat_id = cur.execute(cat_query, (category,)).fetchone()
 
         if not cat_id:
             self.logger.info('Category does not exist, raising exception')
@@ -822,7 +884,8 @@ class DatabaseManager:
             cat_id = cat_id[0]
 
         try:
-            self._connection.execute(word_query, (word, cat_id))
+            with sqlite_transaction(self._connection) as cur:
+                cur.execute(word_query, (word, cat_id))
         except sqlite3.IntegrityError:
             self.logger.info('Word already in database, raising exception')
 
@@ -848,34 +911,28 @@ class DatabaseManager:
         cat_query = 'SELECT id FROM categories WHERE name = ?'
         wordlist_query = 'INSERT INTO wordlist(word, category_id) VALUES (?,?)'
 
-        cat_id = self._connection.execute(cat_query, (category,)).fetchone()
+        with sqlite_transaction(self._connection) as cur:
+            cat_id = cur.execute(cat_query, (category,)).fetchone()
 
-        if not cat_id:
-            self.logger.info('Category does not exist, creating')
+            if not cat_id:
+                self.logger.info('Category does not exist, creating')
 
-            cur = self._connection.execute('INSERT INTO categories(name) '
-                                           'VALUES (?)', (category,))
-            cat_id = cur.lastrowid
-        else:
-            cat_id = cat_id[0]
+                status = cur.execute('INSERT INTO categories(name) '
+                                     'VALUES (?)', (category,))
+                cat_id = status.lastrowid
+            else:
+                cat_id = cat_id[0]
 
-        items = [(word, cat_id) for word in words]
-        try:
-            self.logger.info('Inserting words into database')
-            cur = self._connection.cursor()
+            items = [(word, cat_id) for word in words]
+            try:
+                self.logger.info('Inserting words into database')
 
-            # cur.execute('BEGIN TRANSACTION')
+                cur.executemany(wordlist_query, items)
+            except sqlite3.IntegrityError:
+                self.logger.info('Word already exists in database, rolling '
+                                 'back and raising exception')
 
-            cur.executemany(wordlist_query, items)
-        except sqlite3.IntegrityError:
-            self.logger.info('Word already exists in database, rolling back '
-                             'and raising exception')
-
-            self._connection.rollback()
-
-            raise WordExistsException()
-        else:
-            self._connection.commit()
+                raise WordExistsException()
 
     def set_wordlist(self, word_list: dict[str, list[str]]) -> None:
         """Replaces the existing wordlist with a new one.
@@ -900,44 +957,38 @@ class DatabaseManager:
 
         self.logger.info('Replacing the existing wordlist')
 
-        self._connection.commit()
-        cur = self._connection.cursor()
-        cur.execute('BEGIN TRANSACTION')
-
         self.logger.info('Dropping old tables')
 
-        cur.execute('DELETE FROM wordlist')
-        cur.execute('DELETE FROM categories')
-
-        cat_ids: dict[str, int] = {}
-
-        query = 'INSERT INTO categories(name) VALUES (?)'
-
-        # While we could use Sqlite3's `executemany`, this allows us to
-        # cache the category IDs, instead of needing multiple SELECT
-        # queries.
-        for category in word_list.keys():
-            cur.execute(query, (category,))
-            cat_ids[category] = cur.lastrowid
-
         try:
-            self.logger.info('Creating new wordlist')
+            with sqlite_transaction(self._connection) as cur:
+                cur.execute('DELETE FROM wordlist')
+                cur.execute('DELETE FROM categories')
 
-            query = 'INSERT INTO wordlist (word, category_id) VALUES (?,?)'
+                cat_ids: dict[str, int] = {}
 
-            for cat, words in word_list.items():
-                seq_of_params = [(word, cat_ids[cat]) for word in words]
-                cur.executemany(query, seq_of_params)
+                query = 'INSERT INTO categories(name) VALUES (?)'
+
+                # While we could use Sqlite3's `executemany`, this allows us to
+                # cache the category IDs, instead of needing multiple SELECT
+                # queries.
+                for category in word_list.keys():
+                    print(category)
+                    cur.execute(query, (category,))
+                    cat_ids[category] = cur.lastrowid
+
+                self.logger.info('Creating new wordlist')
+
+                query = 'INSERT INTO wordlist (word, category_id) VALUES (?,?)'
+
+                for cat, words in word_list.items():
+                    seq_of_params = [(word, cat_ids[cat]) for word in words]
+                    cur.executemany(query, seq_of_params)
         except sqlite3.IntegrityError:
-            self.logger.info('Duplicate word found, rolling back and raising '
-                             'exception')
+            self.logger.info('Duplicate word found, raising exception')
 
-            self._connection.rollback()
             raise WordExistsException()
 
         self.logger.info('Wordlist in database updated')
-
-        self._connection.commit()
 
     def set_meta(self, name: str, data: str) -> None:
         """Assigns a meta row in the database.
@@ -950,8 +1001,8 @@ class DatabaseManager:
         self.logger.info(f'Writing {name} to the meta table')
 
         query = 'INSERT OR REPLACE INTO meta(name, data) VALUES (?,?)'
-
-        self._connection.execute(query, (name, data))
+        with sqlite_transaction(self._connection) as cur:
+            cur.execute(query, (name, data))
 
     def get_meta(self, name: str) -> str:
         """Retrieves metadata from the database.
@@ -969,8 +1020,8 @@ class DatabaseManager:
         self.logger.info(f'Getting {name} from database meta table')
 
         query = 'SELECT data FROM meta WHERE name = ?'
-
-        res: list[str] = self._connection.execute(query, (name,)).fetchone()
+        with sqlite_transaction(self._connection) as cur:
+            res: list[str] = cur.execute(query, (name,)).fetchone()
 
         if not res:
             self.logger.info('Meta row not found, raising exception')
@@ -988,15 +1039,15 @@ class DatabaseManager:
         self.logger.info('Getting all redeems in the database')
 
         query = 'SELECT name, cost FROM redeems'
-
-        return self._connection.execute(query).fetchall()
+        with sqlite_transaction(self._connection) as cur:
+            return cur.execute(query).fetchall()
 
     def get_redeem_cost(self, name: str) -> int:
         self.logger.info(f'Getting cost of {name} redeem')
 
         query = 'SELECT cost FROM redeems WHERE name = ?'
-
-        res: list[int] = self._connection.execute(query, (name,)).fetchone()
+        with sqlite_transaction(self._connection) as cur:
+            res: list[int] = cur.execute(query, (name,)).fetchone()
 
         if not res:
             self.logger.info('Redeem not found, raising exception')
@@ -1011,7 +1062,8 @@ class DatabaseManager:
         query = 'INSERT INTO users (username, score, tokens) VALUES (?, ?, ?)'
 
         try:
-            self._connection.execute(query, (username, score, points))
+            with sqlite_transaction(self._connection) as cur:
+                cur.execute(query, (username, score, points))
         except sqlite3.IntegrityError:
             self.logger.info('User already exists, raising exception')
 
