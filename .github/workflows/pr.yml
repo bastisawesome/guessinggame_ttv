@@ -6,8 +6,7 @@ on:
       - master
 
     paths:
-      - 'src/'
-      - 'tests/'
+      - '**.py'
 
 jobs:
   validate-pr:
