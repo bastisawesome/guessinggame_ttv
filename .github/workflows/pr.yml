@@ -4,8 +4,7 @@ on:
   pull_request:
 
     paths:
-      - 'src/'
-      - 'tests/'
+      - '**.py'
 
 jobs:
   validate-pr:
