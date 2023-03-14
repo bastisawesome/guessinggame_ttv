@@ -1,7 +1,7 @@
 {
     "_meta": {
         "hash": {
-            "sha256": "8936a9cda8edcef12d8416233337d81eda460b86b56c3eefc0ec2cd48954ba24"
+            "sha256": "77b4c44376411b38a9165e7437b597c4ed43fc5e3946bbbbb204f8c29aa60c59"
         },
         "pipfile-spec": 6,
         "requires": {
@@ -316,6 +316,10 @@
             ],
             "markers": "python_version >= '3.7'",
             "version": "==1.3.3"
+        },
+        "guessinggame-ttv": {
+            "editable": true,
+            "path": "."
         },
         "idna": {
             "hashes": [

@@ -6,7 +6,7 @@ requires = [
 ]
 build-backend = "setuptools.build_meta"
 
-[project]
+[guessinggame_ttv]
 dynamic = ["version"]
 
 [tool.setuptools_scm]
