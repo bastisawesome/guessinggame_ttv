@@ -8,6 +8,7 @@ twitchio = "*"
 console-menu = "*"
 configupdater = "*"
 guessinggame-ttv = {editable = true, path = "."}
+packaging = "*"
 
 [dev-packages]
 flake8 = "*"
