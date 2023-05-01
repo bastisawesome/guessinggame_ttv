@@ -3,6 +3,13 @@ import sys
 import subprocess
 import pathlib
 import shutil
+import zipfile
+import tarfile
+
+
+# Annoying and stupid globals to ease life in per-platform archiving.
+DIST_PATH = pathlib.Path('dist')
+TEMPLATES_PATH = pathlib.Path('templates')
 
 
 def check_virtual_env() -> bool:
@@ -21,9 +28,6 @@ You can run the script in one of two ways:
         print(msg)
         sys.exit(1)
 
-    dist_path = pathlib.Path('dist/')
-
-    # 1. Run Pyinstaller to build the application
     print('Building GuessingGame_TTV...')
 
     subprocess.run([
@@ -35,15 +39,6 @@ You can run the script in one of two ways:
         check=True)
 
     print('Building done, preparing assets for packaging.')
-    # 2. Bundle extra application data such as the `templates/` and the readme
-
-    # Prepare the directory to be compressed and archived
-    ggttv_path = pathlib.Path('dist/guessinggame_ttv/')
-    ggttv_path.mkdir(exist_ok=True)
-
-    shutil.move(dist_path / 'guessinggame_ttv')
-
-    # 3. Generate platform-specific compressed archives for distribution
 
 
 if __name__ == '__main__':
