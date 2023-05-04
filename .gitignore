@@ -129,3 +129,4 @@ dmypy.json
 
 # Project-specific ignores
 config/
+_version.py
