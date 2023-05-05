@@ -85,6 +85,19 @@ def write_tarball(bin_name: str) -> None:
 
 def build_windows():
     raise NotImplementedError()
+    executable_path = DIST_PATH / WINDOWS_BINARY_NAME
+    readme_path = pathlib.Path('README.md')
+
+    with zipfile.ZipFile(
+            file=DIST_PATH / f'guessinggame_ttv-{version}.zip',
+            mode='w',
+            compression=zipfile.ZIP_DEFLATED) as out_arc:
+        out_arc.write(executable_path,
+                      arcname=f'guessinggame_ttv/{WINDOWS_BINARY_NAME}')
+        out_arc.write(readme_path,
+                      arcname=f'guessinggame_ttv/{readme_path}')
+        out_arc.write(TEMPLATES_PATH,
+                      arcname=f'guessinggame_ttv/{TEMPLATES_PATH}')
 
 
 if __name__ == '__main__':
