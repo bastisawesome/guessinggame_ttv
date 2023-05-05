@@ -11,3 +11,4 @@ dynamic = ["version"]
 
 [tool.setuptools_scm]
 write_to = "src/guessinggame_ttv/_version.py"
+local_scheme='no-local-version'
