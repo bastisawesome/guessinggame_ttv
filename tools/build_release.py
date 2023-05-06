@@ -84,7 +84,6 @@ def write_tarball(bin_name: str) -> None:
 
 
 def build_windows():
-    raise NotImplementedError()
     executable_path = DIST_PATH / WINDOWS_BINARY_NAME
     readme_path = pathlib.Path('README.md')
 
