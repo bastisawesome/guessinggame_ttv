@@ -143,7 +143,7 @@ from source in one of two ways:
     1. Execute the build script through Pipenv
 
     ```bash
-    $ pipenv build-release
+    $ pipenv run build-release
     ```
 
     2. Copy the archive from `dist/` to a new location and extract it. See
