@@ -53,8 +53,8 @@ jobs:
 
       - name: Upload archive
         uses: softprops/action-gh-release@v1
-        draft: true
         with:
+          draft: true
           files: |
             dist/*
 
@@ -120,7 +120,7 @@ jobs:
 
       - name: Upload archive
         uses: softprops/action-gh-release@v1
-        draft: true
         with:
+          draft: true
           files: |
             dist/*
