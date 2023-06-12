@@ -59,6 +59,7 @@ jobs:
             dist/*
 
   build-arm:
+    runs-on: 'ubuntu-latest'
     strategy:
       fail-fast: true
       matrix:
@@ -79,8 +80,6 @@ jobs:
             python: '3.10'
             os-name: 'linux'
             os-arch: 'aarch64'
-
-    runs-on: 'ubuntu-latest'
 
     name: ${{ matrix.os-name }}
 
