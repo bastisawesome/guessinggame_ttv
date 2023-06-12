@@ -1,3 +1,14 @@
 [build-system]
-requires = ["setuptools>=65.0", "wheel"]
+requires = [
+    "setuptools>=65.0",
+    "wheel",
+    "setuptools_scm[toml]>=6.2"
+]
 build-backend = "setuptools.build_meta"
+
+[guessinggame_ttv]
+dynamic = ["version"]
+
+[tool.setuptools_scm]
+write_to = "src/guessinggame_ttv/_version.py"
+local_scheme='no-local-version'

@@ -107,7 +107,10 @@ def test__load_previous_data() -> None:
 
 
 def test_choose_new_word(gameobj: Game) -> None:
+    assert isinstance(gameobj._databasemanager, DBManagerMock)
+
     db: DBManagerMock = gameobj._databasemanager
+
     catlist = db.wordlist.keys()
     wordlist = db.words_as_list()
 
@@ -138,6 +141,8 @@ def test_update_point_value(gameobj: Game) -> None:
         'cat': [str(i) for i in range(13)]
     }
 
+    assert isinstance(gameobj._databasemanager, DBManagerMock)
+
     gameobj.update_point_value()
     assert gameobj.point_value == 3
 
@@ -163,6 +168,8 @@ def test_process_win_round_continue(gameobj: Game) -> None:
 
 
 def test_process_win_round_end(gameobj: Game) -> None:
+    assert isinstance(gameobj._databasemanager, DBManagerMock)
+
     db: DBManagerMock = gameobj._databasemanager
     db.wordlist = {gameobj._current_category: [gameobj._current_word]}
     message = gameobj._current_word
@@ -200,6 +207,8 @@ def test__word_in_message(gameobj: Game, word_to_guess: str,
 
 
 def test_end_round(gameobj: Game) -> None:
+    assert isinstance(gameobj._databasemanager, DBManagerMock)
+
     db: DBManagerMock = gameobj._databasemanager
     db.users['testuser']['score'] = 5
     db.users['testuser2'] = {
@@ -231,6 +240,8 @@ def test_end_round(gameobj: Game) -> None:
 
 
 def test__distribute_points_no_users(gameobj: Game) -> None:
+    assert isinstance(gameobj._databasemanager, DBManagerMock)
+
     dbmanmock: DBManagerMock = gameobj._databasemanager
     dbmanmock.users = {}
 
@@ -240,6 +251,8 @@ def test__distribute_points_no_users(gameobj: Game) -> None:
 
 
 def test_teardown_running(gameobj: Game) -> None:
+    assert isinstance(gameobj._databasemanager, DBManagerMock)
+
     db: DBManagerMock = gameobj._databasemanager
 
     gameobj.teardown()
@@ -255,6 +268,8 @@ def test_teardown_running(gameobj: Game) -> None:
 
 
 def test_teardown_not_running(gameobj: Game) -> None:
+    assert isinstance(gameobj._databasemanager, DBManagerMock)
+
     db: DBManagerMock = gameobj._databasemanager
 
     gameobj._running = False

@@ -134,6 +134,11 @@ def wordlist_from_file(wordlist_path: pathlib.Path) -> None:
     dbman.reset_round()
 
 
+def get_version_info() -> str:
+    from guessinggame_ttv._version import __version__
+    return __version__
+
+
 def parse_args(args: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         prog='GuessingGame_TTV',
@@ -141,6 +146,12 @@ def parse_args(args: list[str] | None = None) -> argparse.Namespace:
                      'License: New BSD 3-Clause'),
         epilog=('(c) 2022 Giles Johnson. For more information '
                 'see https://github.com/bastisawesome/guessinggame_ttv')
+    )
+
+    parser.add_argument(
+        '--version',
+        action='version',
+        version=f'{get_version_info()}'
     )
 
     parser.add_argument(
