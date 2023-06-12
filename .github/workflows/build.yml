@@ -1,0 +1,126 @@
+name: Build GuessingGame_TTV
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+
+jobs:
+  build-amd64:
+    strategy:
+      fail-fast: true
+      matrix:
+        python: '3.10'
+
+        include:
+          - os: 'ubuntu-latest'
+            name: 'linux'
+
+          - os: 'macos-latest'
+            name: 'macos'
+
+          - os: 'windows-latest'
+            name: 'windows'
+
+    runs-on: ${{ matrix.os }}
+    name: ${{ matrix.name }} AMD64
+
+    steps:
+      # Preliminary steps:
+      # - Checkout the repo
+      # - Setup the correct version of Python
+      # - Install the dependencies
+      # - Run the build script
+      # - Add the OS name and arch to the archive
+      # - Add the generated archive to the release assets
+      - name: Checkout Repo
+        uses: actions/checkout@v3
+
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python }}
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pipenv
+          pipenv sync --dev
+
+      - name: Build
+        run: |
+          pipenv run build-release --os ${{ matrix.name }} --arch x64
+
+      - name: Upload archive
+        uses: softprops/action-gh-release@v1
+        draft: true
+        with:
+          files: |
+            dist/*
+
+  build-arm:
+    strategy:
+      fail-fast: true
+      matrix:
+        arch: [armv7l, aarch64]
+        include:
+          - arch: armv6L
+            cpu: arm1176
+            base_image: raspios_lite:latest
+            cpu_info: raspberrypi_zero_w
+            python: '3.10'
+            os-name: 'linux'
+            os-arch: 'arm32'
+
+          - arch: aarch64
+            cpu: cortex-a53
+            base_image: raspios_lite_arm64:latest
+            cpu_info: raspberrypi_4b
+            python: '3.10'
+            os-name: 'linux'
+            os-arch: 'aarch64'
+
+    runs-on: 'ubuntu-latest'
+
+    name: ${{ matrix.os-name }}
+
+    steps:
+      # Preliminary steps:
+      # - Checkout the repo
+      # - Setup the RPi emulation layer
+      # - Setup the correct version of Python
+      # - Install the dependencies
+      # - Run the build script
+      # - Add the OS name and arch to the archive
+      # - Add the generated archive to the release assets
+      - name: Checkout Repo
+        uses: actions/checkout@v3
+
+      - name: Configure ${{ matrix.os-name }}
+        uses: pguyot/arm-runner-action@v2.5.2
+        with:
+          base_image: ${{ matrix.base_image }}
+          cpu: ${{ matrix.cpu }}
+          cpu_info: ${{ matrix.cpu_info }}
+
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python }}
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pipenv
+          pipenv sync --dev
+
+      - name: Build
+        run: |
+          pipenv run build-release --os ${{ matrix.os-name }} --arch ${{ matrix.os-arch }}
+
+      - name: Upload archive
+        uses: softprops/action-gh-release@v1
+        draft: true
+        with:
+          files: |
+            dist/*
