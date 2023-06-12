@@ -17,6 +17,24 @@ def check_virtual_env() -> bool:
     return os.environ.get('PIPENV_ACTIVE', None) == '1'
 
 
+def get_os_and_arch() -> str:
+    os_and_arch = ''
+    os = ''
+    arch = ''
+    if '--os' in sys.argv:
+        os = sys.argv[sys.argv.index('--os')+1]
+
+    if '--arch' in sys.argv:
+        arch = sys.argv[sys.argv.index('--arch')+1]
+
+    if os:
+        os_and_arch += f'{os}{"-" if arch else ""}'
+    if arch:
+        os_and_arch += arch
+
+    return os_and_arch or 'unknown'
+
+
 def main() -> None:
     if not check_virtual_env():
         msg = '''This script can only be run with Pipenv.
@@ -31,6 +49,8 @@ You can run the script in one of two ways:
 
     print('Building GuessingGame_TTV...')
 
+    os_and_arch = get_os_and_arch()
+
     subprocess.run([
         'pyinstaller',
         '--noconfirm',
@@ -42,11 +62,11 @@ You can run the script in one of two ways:
     print('Building done, archiving application')
 
     if sys.platform.startswith('linux'):
-        build_linux()
+        build_linux(os_and_arch)
     elif sys.platform.startswith('darwin'):
-        build_macos()
+        build_macos(os_and_arch)
     elif sys.platform.startswith('win32'):
-        build_windows()
+        build_windows(os_and_arch)
     else:
         print('Unsupported operating system. Feel free to make a pull request'
               'to add more supported platforms.')
@@ -55,17 +75,17 @@ You can run the script in one of two ways:
     print('Archive created in `dist`')
 
 
-def build_linux() -> None:
-    write_tarball(NIX_BINARY_NAME)
+def build_linux(os_and_arch: str) -> None:
+    write_tarball(NIX_BINARY_NAME, os_and_arch)
 
 
-def build_macos() -> None:
+def build_macos(os_and_arch: str) -> None:
     # In case of future differences, this build function will remain separate
     # from the Linux build function, despite both doing the same things.
-    write_tarball(NIX_BINARY_NAME)
+    write_tarball(NIX_BINARY_NAME, os_and_arch)
 
 
-def write_tarball(bin_name: str) -> None:
+def write_tarball(bin_name: str, os_and_arch: str) -> None:
     # 1. Add the executable to the tarball
     # 2. Add templates directory to the tarball
     # 3. Add readme to the tarball
@@ -73,7 +93,7 @@ def write_tarball(bin_name: str) -> None:
     readme_path = pathlib.Path('README.md')
 
     with tarfile.open(
-            name=DIST_PATH / f'guessinggame_ttv-{version}.tar.gz',
+            name=DIST_PATH / f'guessinggame_ttv-{version}-{os_and_arch}.tar.gz',
             mode='w:gz') as out_arc:
         out_arc.add(executable_path,
                     arcname=f'guessinggame_ttv/{bin_name}')
@@ -83,12 +103,12 @@ def write_tarball(bin_name: str) -> None:
                     arcname=f'guessinggame_ttv/{TEMPLATES_PATH}')
 
 
-def build_windows():
+def build_windows(os_and_arch: str):
     executable_path = DIST_PATH / WINDOWS_BINARY_NAME
     readme_path = pathlib.Path('README.md')
 
     with zipfile.ZipFile(
-            file=DIST_PATH / f'guessinggame_ttv-{version}.zip',
+            file=DIST_PATH / f'guessinggame_ttv-{version}-{os_and_arch}.zip',
             mode='w',
             compression=zipfile.ZIP_DEFLATED) as out_arc:
         out_arc.write(executable_path,
