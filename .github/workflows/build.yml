@@ -81,7 +81,7 @@ jobs:
             os-name: 'linux'
             os-arch: 'aarch64'
 
-    name: ${{ matrix.os-name }}
+    name: ${{ matrix.os-name }} ${{ matrix.os-arch }}
 
     steps:
       # Preliminary steps:
