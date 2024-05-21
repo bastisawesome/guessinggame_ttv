@@ -9,6 +9,7 @@ console-menu = "*"
 configupdater = "*"
 guessinggame-ttv = {editable = true, path = "."}
 packaging = "*"
+aiohttp = "*"
 
 [dev-packages]
 flake8 = "*"
