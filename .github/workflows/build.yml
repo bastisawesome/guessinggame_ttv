@@ -70,18 +70,18 @@ jobs:
             base_image: raspios_lite:latest
             cpu_info: raspberrypi_zero_w
             python: '3.10'
-            os-name: 'linux'
-            os-arch: 'arm32'
+            os_name: 'linux'
+            os_arch: 'arm32'
 
           - arch: aarch64
             cpu: cortex-a53
             base_image: raspios_lite_arm64:latest
             cpu_info: raspberrypi_4b
             python: '3.10'
-            os-name: 'linux'
-            os-arch: 'aarch64'
+            os_name: 'linux'
+            os_arch: 'aarch64'
 
-    name: ${{ matrix.os-name }} ${{ matrix.os-arch }}
+    name: ${{ matrix.os_name }} ${{ matrix.os_arch }}
 
     steps:
       # Preliminary steps:
@@ -95,7 +95,7 @@ jobs:
       - name: Checkout Repo
         uses: actions/checkout@v3
 
-      - name: Configure ${{ matrix.os-name }}
+      - name: Configure ${{ matrix.os_name }}
         uses: pguyot/arm-runner-action@v2.5.2
         with:
           base_image: ${{ matrix.base_image }}
@@ -115,7 +115,7 @@ jobs:
 
       - name: Build
         run: |
-          pipenv run build-release --os ${{ matrix.os-name }} --arch ${{ matrix.os-arch }}
+          pipenv run build-release --os ${{ matrix.os_name }} --arch ${{ matrix.os_arch }}
 
       - name: Upload archive
         uses: softprops/action-gh-release@v1
