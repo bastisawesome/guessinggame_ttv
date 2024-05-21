@@ -10,6 +10,7 @@ configupdater = "*"
 guessinggame-ttv = {editable = true, path = "."}
 packaging = "*"
 aiohttp = "*"
+pyinstaller = "*"
 
 [dev-packages]
 flake8 = "*"
