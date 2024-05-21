@@ -260,8 +260,8 @@ class Game:
         return ret_data
 
     def _word_in_message(self, msg: str) -> bool:
-        if not re.search(r'\b{}\b'.format(self._current_word.lower()),
-                         msg.lower()):
+        if re.search(r'\b{}\b'.format(self._current_word.lower()),
+                     msg.lower()) is None:
             return False
 
         return True
