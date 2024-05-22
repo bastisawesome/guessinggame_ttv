@@ -109,7 +109,7 @@ class DatabaseManager:
             self.logger.warn('Creating in-memory database, use this only for '
                              'testing')
 
-            conn = sqlite3.connect('file:testdb?mode=memory',
+            conn = sqlite3.connect('file:testdb?mode=memory&cache=shared',
                                    uri=True,
                                    detect_types=sqlite3.PARSE_DECLTYPES,
                                    check_same_thread=False,
