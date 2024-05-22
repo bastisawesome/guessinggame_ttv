@@ -1,6 +1,6 @@
 from contextlib import contextmanager
 from packaging import version
-from typing import Tuple, Generator
+from typing import Tuple, Generator, Optional
 
 import sqlite3
 import logging
@@ -209,6 +209,49 @@ class DatabaseManager:
         exists = self._connection.execute(exists_query).fetchone()
 
         return exists is not None
+
+    def _create_table(self, tablename: str, schema: str) -> None:
+        '''Creates the table from the schema, migrating old data if exists.
+
+        Accepts a table name and schema, then checks for a table with that name
+        in the database. If it finds that table, it then grabs the old data,
+        regenerates the table with the new schema, and finally puts the old data
+        back in.
+
+        Args:
+            tablename (str): Name of the table to add.
+            schema (str): Schema for the table.
+
+        Raises:
+            DatabaseException: Any errors with creating the table.
+        '''
+
+        self.logger.info(f'Initialising the `{tablename}` table')
+        self.logger.info(f'Checking for existing `{tablename}` data')
+
+        table_exists = self._table_exists(tablename)
+        table_data: Optional[list[Tuple[str]]] = None
+
+        if table_exists:
+            self.logger.info(f'`{tablename}` exists, grabbing old data')
+
+            table_data = self._copy_data(tablename)
+
+            self.logger.info(f'Deleting the old `{tablename}` table')
+
+            self._connection.execute('DROP TABLE ?', (tablename,))
+
+        self.logger.info(f'Creating the `{tablename}` table')
+
+        self._connection.execute(schema)
+
+        # Migrating table data should be moved to a separate function.
+        if table_data:
+            self.logger.info(f'`Copying old data back to `{tablename}`')
+
+            # TODO: This needs to grab the difference between the two schemas,
+            #       then insert into the new table the shared data from the
+            #       old table.
 
     def _init_users(self) -> None:
         self.logger.info('Initialising the `users` table')
