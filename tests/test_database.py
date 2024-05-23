@@ -574,7 +574,7 @@ def test_sqlite_transaction_multiple_transactions(
 
     # Skipping the schema information, which is now guaranteed to be in the
     # database.
-    _, test, real = dbconn.execute('SELECT name, data FROM meta').fetchall()
+    test, real = dbconn.execute('SELECT name, data FROM meta').fetchall()
     assert test[0] == 'test_meta'
     assert test[1] == 'test_value'
     assert real[0] == 'real_meta'
@@ -592,4 +592,4 @@ def test_sqlite_transaction_error(dbconn: sqlite3.Connection) -> None:
 
     results = dbconn.execute('SELECT name FROM meta').fetchone()
 
-    assert len(results[1:]) == 0
+    assert results is None

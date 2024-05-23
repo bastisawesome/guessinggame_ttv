@@ -11,11 +11,14 @@ from typing import Tuple
 
 logging.disable()
 
+rebuild_filled_dbmanager = True
+
 
 @pytest.fixture(scope='function')
 def dbmanager() -> DatabaseManager:
     dm = DatabaseManager(_in_memory=True)
-    return dm
+    yield dm
+    dm.teardown()
 
 
 @pytest.fixture(scope='function')
@@ -57,7 +60,7 @@ def dbmanagerfilled(dbmanager: DatabaseManager) -> DatabaseManager:
     conn.executemany('INSERT INTO meta (name, data) VALUES (?,?)',
                      metadata)
 
-    return dbmanager
+    yield dbmanager
 
 
 class DBManagerMock(DatabaseManager):
