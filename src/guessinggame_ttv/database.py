@@ -1,6 +1,6 @@
 from contextlib import contextmanager
 from packaging import version
-from typing import Tuple, Generator, Optional
+from typing import Tuple, Generator
 
 import sqlite3
 import logging
@@ -205,28 +205,17 @@ class DatabaseManager:
         self.logger.info(f'Checking for existing `{tablename}` data')
 
         table_exists = self._table_exists(tablename)
-        table_data: Optional[list[Tuple[str]]] = None
 
         if table_exists:
-            self.logger.info(f'`{tablename}` exists, grabbing old data')
+            self.logger.info(f'`{tablename}` exists, no need to rebuild')
 
-            table_data = self._copy_data(tablename)
-
-            self.logger.info(f'Deleting the old `{tablename}` table')
-
-            self._connection.execute('DROP TABLE ?', (tablename,))
+            return
 
         self.logger.info(f'Creating the `{tablename}` table')
 
         self._connection.execute(schema)
 
-        # Migrating table data should be moved to a separate function.
-        if table_data:
-            self.logger.info(f'`Copying old data back to `{tablename}`')
-
-            # TODO: This needs to grab the difference between the two schemas,
-            #       then insert into the new table the shared data from the
-            #       old table.
+        self.logger.info(f'Finished creating `{tablename}` table')
 
     def _init_users(self) -> None:
         self.logger.info('Initialising the `users` table')
@@ -235,7 +224,8 @@ class DatabaseManager:
         users_exists = self._table_exists('users')
 
         if users_exists:
-            self.logger.info('`users` exists, no need to rebuild.')
+            self.logger.info('`users` exists, no need to rebuild')
+
             return
 
         self.logger.info('Creating the `users` table')
