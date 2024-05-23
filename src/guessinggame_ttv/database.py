@@ -198,11 +198,8 @@ class DatabaseManager:
         if create_database:
             self.logger.info('Initialising database')
 
-            self._init_users()
-            self._init_redeems()
-            self._init_categories()
-            self._init_wordlist()
-            self._init_meta()
+            for tablename, schema in DATABASE_SCHEMA.items():
+                self._create_table(tablename, schema)
 
         self.logger.info('Database initialised')
         self._connection.commit()
@@ -246,117 +243,6 @@ class DatabaseManager:
         self._connection.execute(schema)
 
         self.logger.info(f'Finished creating `{tablename}` table')
-
-    def _init_users(self) -> None:
-        self.logger.info('Initialising the `users` table')
-        self.logger.info('Checking for existing `users` data')
-
-        users_exists = self._table_exists('users')
-
-        if users_exists:
-            self.logger.info('`users` exists, no need to rebuild')
-
-            return
-
-        self.logger.info('Creating the `users` table')
-
-        schema = '''CREATE TABLE users (
-    id INTEGER PRIMARY KEY NOT NULL UNIQUE,
-    username TEXT NOT NULL UNIQUE COLLATE NOCASE,
-    score INTEGER NOT NULL DEFAULT 0,
-    tokens INTEGER NOT NULL DEFAULT 0
-)'''
-        self._connection.execute(schema)
-
-        self.logger.info('Finished creating `users` table')
-
-    def _init_redeems(self) -> None:
-        self.logger.info('Initialising `redeems` table')
-        self.logger.info('Checking for existing `redeems` table')
-
-        redeems_exists = self._table_exists('redeems')
-
-        if redeems_exists:
-            self.logger.info('`redeems` exists, no need to rebuild')
-
-            return
-
-        self.logger.info('Creating `redeems` table')
-
-        schema = '''CREATE TABLE redeems (
-    name TEXT PRIMARY KEY NOT NULL UNIQUE COLLATE NOCASE,
-    cost INTEGER NOT NULL
-)'''
-        self._connection.execute(schema)
-
-        self.logger.info('Finished creating `redeems` table')
-
-    def _init_categories(self) -> None:
-        self.logger.info('Initialising `categories` table')
-        self.logger.info('Checking if `categories` exists')
-
-        cats_exists = self._table_exists('categories')
-
-        if cats_exists:
-            self.logger.info('`categories` exists, no need to rebuild')
-
-            return
-
-        self.logger.info('Creating `categories` table')
-
-        schema = '''CREATE TABLE categories (
-    id INTEGER PRIMARY KEY NOT NULL UNIQUE,
-    name TEXT NOT NULL UNIQUE COLLATE NOCASE
-)'''
-        self._connection.execute(schema)
-
-        self.logger.info('Finished creating `categories` table')
-
-    def _init_wordlist(self) -> None:
-        self.logger.info('Initialising `wordlist` table')
-        self.logger.info('Checking for existing `wordlist` table')
-
-        wordlist_exists = self._table_exists('wordlist')
-
-        if wordlist_exists:
-            self.logger.info('`wordlist` exists, no need to rebuild')
-
-            return
-
-        self.logger.info('Creating `wordlist` table')
-
-        schema = '''CREATE TABLE wordlist(
-    id INTEGER PRIMARY KEY NOT NULL UNIQUE,
-    word TEXT NOT NULL UNIQUE COLLATE NOCASE,
-    category_id INTEGER NOT NULL REFERENCES categories(id) ON DELETE RESTRICT
-)'''
-        self._connection.execute(schema)
-
-        self.logger.info('Finished creating `wordlist` table')
-
-    def _init_meta(self) -> None:
-        self.logger.info('Initialising `meta` table')
-        self.logger.info('Checking for existing `meta` table')
-
-        meta_exists = self._table_exists('meta')
-
-        if meta_exists:
-            self.logger.info('`meta` exists, no need to rebuild')
-
-            return
-
-        self.logger.info('Creating `meta` table')
-
-        schema = '''CREATE TABLE meta (
-    id INTEGER PRIMARY KEY NOT NULL UNIQUE,
-    name TEXT NOT NULL UNIQUE COLLATE NOCASE,
-    data BLOB
-)'''
-        self._connection.execute(schema)
-
-        self.set_meta('schema_version', str(self.schema_version))
-
-        self.logger.info('Finished creating `meta` table')
 
     def teardown(self) -> None:
         """Closes the database connection
