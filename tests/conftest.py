@@ -60,7 +60,7 @@ def dbmanagerfilled(dbmanager: DatabaseManager) -> DatabaseManager:
     conn.executemany('INSERT INTO meta (name, data) VALUES (?,?)',
                      metadata)
 
-    yield dbmanager
+    return dbmanager
 
 
 class DBManagerMock(DatabaseManager):
