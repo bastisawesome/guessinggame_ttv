@@ -184,9 +184,9 @@ class DatabaseManager:
                     db_ver = version.Version(data)
 
                     if db_ver != self.schema_version:
-                        self.logger.info('Database out of date, flagging to '
-                                         'update')
-                        create_database = True
+                        self.logger.error('Database out of date, but migrating '
+                                          'is not supported!')
+                        raise NotImplementedError()
 
         # Force Sqlite3 to validate foreign keys
         conn.execute('PRAGMA foreign_keys = 1')
