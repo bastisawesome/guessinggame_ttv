@@ -8,6 +8,7 @@ import pytest
 import sqlite3
 
 from typing import Tuple
+from collections.abc import Generator
 
 logging.disable()
 
@@ -15,7 +16,7 @@ rebuild_filled_dbmanager = True
 
 
 @pytest.fixture(scope='function')
-def dbmanager() -> DatabaseManager:
+def dbmanager() -> Generator[DatabaseManager, None, None]:
     dm = DatabaseManager(_in_memory=True)
     yield dm
     dm.teardown()
